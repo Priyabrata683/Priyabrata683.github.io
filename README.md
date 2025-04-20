@@ -235,7 +235,8 @@
       secondaryDiv.classList.toggle('hidden');
     });
   </script>
-</body>
+  
+  // footer
   </script>
   function createFooter(){
     const footer = document.createElement("footer");
@@ -259,5 +260,6 @@
     }
     createfooter();
     </script>
+  </body>
 </html>
 
