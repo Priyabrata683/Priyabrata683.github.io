@@ -238,28 +238,38 @@
   <!-- Footer -->
 
   <script>
-    function createFooter() {
-      const footer = document.createElement("footer");
-      footer.style.cssText = `
-        background-color: #f5f5f5;
-        color: #333;
-        text-align: center;
-        padding: 1rem;
-        font-size: 0.9rem;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        z-index: 1000;
-        box-shadow: 0 -1px 5px rgba(0,0,0,0.1);
-      `;
-      footer.innerHTML = `
-        <p>Thank you for visiting my portfolio! 🙏✨</p>
-        <p>Created with passion by PRIYABRATA PARIDA ❤️</p>
-      `;
-      document.body.appendChild(footer);
+   function createFooter() {
+  const footer = document.createElement("footer");
+  footer.style.cssText = `
+    background-color: #0d47a1;
+    color: #ffffff;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    width: 100%;
+    display: none; /* Hide initially */
+  `;
+  footer.innerHTML = `
+    <p style="margin: 0;">Thank you for visiting my portfolio! 🙏✨</p>
+    <p style="margin: 0;">Created with passion by <span style="color: #4f46e5;">PRIYABRATA PARIDA</span> ❤️</p>
+  `;
+  document.body.appendChild(footer);
+
+  // Show footer when user scrolls to bottom
+  window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const bodyHeight = document.body.offsetHeight;
+
+    if (scrollTop + windowHeight >= bodyHeight - 10) {
+      footer.style.display = 'block';
+    } else {
+      footer.style.display = 'none';
     }
-    createFooter();
+  });
+}
+createFooter();
+
   </script>
   </body>
 </html>
