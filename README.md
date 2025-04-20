@@ -239,6 +239,23 @@
 
   <script>
    function createFooter() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes colorShift {
+      0% { color: #4f46e5; }   /* Indigo */
+      25% { color: #3b82f6; }  /* Blue-500 */
+      50% { color: #ec4899; }  /* Pink-500 */
+      75% { color: #8b5cf6; }  /* Violet-500 */
+      100% { color: #4f46e5; } /* Back to Indigo */
+    }
+
+    .animated-name {
+      animation: colorShift 3s infinite;
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(style);
+
   const footer = document.createElement("footer");
   footer.style.cssText = `
     background-color: #0d47a1;
@@ -247,15 +264,14 @@
     padding: 1rem;
     font-size: 0.9rem;
     width: 100%;
-    display: none; /* Hide initially */
+    display: none;
   `;
   footer.innerHTML = `
     <p style="margin: 0;">Thank you for visiting my portfolio! 🙏✨</p>
-    <p style="margin: 0;">Created with passion by <span style="color: #4f46e5;">PRIYABRATA PARIDA</span> ❤️</p>
+    <p style="margin: 0;">Created by 💻 with passion by <span class="animated-name">PRIYABRATA PARIDA</span> ❤️</p>
   `;
   document.body.appendChild(footer);
 
-  // Show footer when user scrolls to bottom
   window.addEventListener('scroll', () => {
     const scrollTop = window.scrollY;
     const windowHeight = window.innerHeight;
