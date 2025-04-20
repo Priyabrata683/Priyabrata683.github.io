@@ -236,7 +236,6 @@
     });
   </script>
   <!-- Footer -->
-
   <script>
    function createFooter() {
   const style = document.createElement('style');
@@ -248,7 +247,6 @@
       75% { color: #8b5cf6; }  /* Violet-500 */
       100% { color: #4f46e5; } /* Back to Indigo */
     }
-
     .animated-name {
       animation: colorShift 3s infinite;
       font-weight: bold;
