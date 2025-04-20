@@ -236,5 +236,28 @@
     });
   </script>
 </body>
+  </script>
+  function createFooter(){
+    const footer = document.createElement("footer");
+    footr.style.cssText = 
+      backgrond-color: #f5f5f5:
+      color: #333;
+      text-align: center:
+      padding: 1rem;
+      font-size: 0.9rem;
+      position: fixed:
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      box-shadow:0 -1px 5px rgba(0,0,0,0,1);
+    `;
+    footer.innerHTML = `
+      <p>Thank you for visiting my portfolio!🙏✨</p>
+      <p>Created by 💻 with passion by PRIYABRATA PARIDA❤️</p>
+    `;
+    document.body.appendChild(footer);
+    }
+    createfooter();
+    </script>
 </html>
 
