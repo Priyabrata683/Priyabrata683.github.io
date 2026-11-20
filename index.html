@@ -17,20 +17,34 @@
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
   </script>
 </head>
-<body>
+<body class="locked">
+  <script>setTimeout(function(){if(!window.__ppReady){var l=document.getElementById("loader");if(l)l.remove();document.body.classList.remove("locked");}},9000);</script>
   <canvas id="webgl" aria-hidden="true"></canvas>
   <div class="vignette" aria-hidden="true"></div>
 
-  <!-- Loader -->
+  <!-- Ignition gate -->
   <div id="loader">
     <div class="loader-inner">
-      <svg class="loader-gear" viewBox="0 0 100 100" aria-hidden="true">
-        <path d="M50 8l6 10 11-4 2 12 12 2-4 11 10 6-10 6 4 11-12 2-2 12-11-4-6 10-6-10-11 4-2-12-12-2 4-11-10-6 10-6-4-11 12-2 2-12 11 4z" />
-        <circle cx="50" cy="50" r="12" />
-      </svg>
-      <p class="mono">IGNITION SEQUENCE <span id="loader-pct">0</span>%</p>
+      <p class="mono ig-eyebrow">PRIYABRATA PARIDA · PORTFOLIO</p>
+      <div class="ignite-wrap">
+        <svg class="ignite-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-track" cx="60" cy="60" r="54" />
+          <circle class="ring-bar" id="ignite-progress" cx="60" cy="60" r="54" />
+        </svg>
+        <button id="ignite-btn" class="ignite-btn" type="button" disabled aria-label="Hold to start the engine">
+          <span class="ig-label">LOADING</span>
+          <span class="ig-sub mono" id="loader-pct">0%</span>
+        </button>
+      </div>
+      <p class="mono ig-hint">Press and hold to start the engine <span class="kbd">or hold SPACE</span></p>
+      <button id="skip-intro" class="skip mono" type="button">Skip intro &rarr;</button>
     </div>
   </div>
+
+  <div class="speedlines" id="speedlines" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
+  <div class="hint-tip mono" id="hint-tip" aria-hidden="true"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <!-- Top bar -->
   <header class="topbar">
@@ -42,21 +56,48 @@
       <a href="#education">Education</a>
       <a href="#contact">Contact</a>
     </nav>
+    <button class="icon-btn" id="sound-btn" type="button" aria-label="Toggle engine sound" title="Engine sound">
+      <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
+      <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M17 9.5l5 5M22 9.5l-5 5" /></svg>
+    </button>
   </header>
   <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
 
   <!-- Section dots -->
   <nav class="dots" id="dots" aria-label="Section navigation"></nav>
 
-  <!-- RPM gauge (reacts to scroll speed) -->
-  <div class="rpm" aria-hidden="true">
-    <svg viewBox="0 0 120 70">
+  <!-- RPM gauge: shows scroll speed, hold it for turbo -->
+  <button class="rpm hud" id="turbo-btn" type="button" aria-label="Hold for turbo boost">
+    <svg viewBox="0 0 120 70" aria-hidden="true">
       <path class="rpm-track" d="M10 62 A50 50 0 0 1 110 62" />
       <path class="rpm-fill" id="rpm-fill" d="M10 62 A50 50 0 0 1 110 62" />
       <line id="rpm-needle" x1="60" y1="62" x2="60" y2="20" />
       <circle cx="60" cy="62" r="4" />
     </svg>
-    <div class="rpm-read mono"><span id="rpm-val">800</span> RPM</div>
+    <span class="rpm-read mono"><span id="rpm-val">800</span> RPM</span>
+    <span class="rpm-tip mono">hold · turbo</span>
+  </button>
+
+  <!-- Secrets tracker -->
+  <div class="secrets hud">
+    <button id="secrets-btn" class="secrets-btn mono" type="button" aria-expanded="false" aria-controls="secrets-panel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6z" /></svg>
+      <span>SECRETS</span> <b id="secrets-count">0/10</b>
+    </button>
+    <div class="secrets-panel" id="secrets-panel" hidden>
+      <p class="mono">Hidden around this page</p>
+      <ul id="secrets-list"></ul>
+    </div>
+  </div>
+
+  <!-- Drive pad (touch + mouse) -->
+  <div class="drive-pad hud" id="drive-pad" hidden>
+    <button type="button" data-k="left" aria-label="Steer left">&#9664;</button>
+    <div class="col">
+      <button type="button" data-k="up" aria-label="Accelerate">&#9650;</button>
+      <button type="button" data-k="down" aria-label="Brake or reverse">&#9660;</button>
+    </div>
+    <button type="button" data-k="right" aria-label="Steer right">&#9654;</button>
   </div>
 
   <main id="content">
@@ -71,6 +112,7 @@
           <a class="btn primary" href="#kart"><i class="fas fa-flag-checkered"></i> See my work</a>
           <a class="btn ghost" href="#contact"><i class="fas fa-paper-plane"></i> Get in touch</a>
         </div>
+        <p class="hint mono">&#10022; Psst: every 3D model is clickable, and 10 secrets are hidden here. Hold <span class="kbd">SPACE</span> for turbo.</p>
       </div>
       <a href="#about" class="scroll-hint mono" aria-label="Scroll down"><span class="mouse"></span>scroll to rev the engine</a>
     </section>
@@ -122,6 +164,10 @@
         <p>My team and I built an <strong>Electric Go-Kart from scratch</strong> to compete in the motorsport event <strong>GKDC 2019</strong>. As <strong>Team Leader of the Design Team</strong>, I oversaw vehicle design, functionality, safety and performance.</p>
         <p>The project sharpened my technical and leadership skills and gave me hands-on experience with electric vehicle systems and motorsport engineering.</p>
         <div class="tags"><span>EV systems</span><span>Chassis design</span><span>Team lead</span><span>Motorsport</span></div>
+        <div class="cta-row">
+          <button class="btn primary" id="drive-btn" type="button"><i class="fas fa-gamepad"></i> <span>Take the wheel</span></button>
+          <span class="key-hint mono">W A S D / arrow keys &middot; Esc to park</span>
+        </div>
       </div>
     </section>
 
