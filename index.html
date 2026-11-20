@@ -18,26 +18,65 @@
   </script>
 </head>
 <body class="locked">
-  <script>setTimeout(function(){if(!window.__ppReady){var l=document.getElementById("loader");if(l)l.remove();document.body.classList.remove("locked");}},9000);</script>
+  <script>setTimeout(function(){if(!window.__ppAlive){var l=document.getElementById("loader");if(l)l.remove();document.body.classList.remove("locked");}},10000);</script>
   <canvas id="webgl" aria-hidden="true"></canvas>
   <div class="vignette" aria-hidden="true"></div>
 
-  <!-- Ignition gate -->
+  <!-- Ignition gate: engine control unit boot screen -->
   <div id="loader">
-    <div class="loader-inner">
-      <p class="mono ig-eyebrow">PRIYABRATA PARIDA · PORTFOLIO</p>
-      <div class="ignite-wrap">
-        <svg class="ignite-ring" viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="ring-track" cx="60" cy="60" r="54" />
-          <circle class="ring-bar" id="ignite-progress" cx="60" cy="60" r="54" />
-        </svg>
-        <button id="ignite-btn" class="ignite-btn" type="button" disabled aria-label="Hold to start the engine">
-          <span class="ig-label">LOADING</span>
-          <span class="ig-sub mono" id="loader-pct">0%</span>
-        </button>
+    <div class="ecu">
+      <svg class="ecu-bp" viewBox="0 0 600 600" aria-hidden="true">
+        <g class="bp-center"><line x1="300" y1="20" x2="300" y2="580" /><line x1="60" y1="430" x2="540" y2="430" /></g>
+        <circle cx="300" cy="430" r="80" /><circle cx="300" cy="430" r="22" /><circle cx="300" cy="370" r="14" />
+        <path d="M286 370 L268 170 M314 370 L332 170" /><circle cx="300" cy="160" r="12" />
+        <rect x="238" y="110" width="124" height="96" rx="4" /><path d="M238 128 H362 M238 140 H362" />
+        <rect x="226" y="60" width="148" height="260" class="bp-liner" />
+        <g class="bp-dim">
+          <path d="M226 40 H374 M226 34 V46 M374 34 V46" /><text x="300" y="30">BORE Ø76</text>
+          <path d="M420 160 V430 M414 160 H426 M414 430 H426" /><text x="430" y="300">L 152</text>
+          <path d="M150 370 V490 M144 370 H156 M144 490 H156" /><text x="60" y="435">STROKE 80</text>
+        </g>
+      </svg>
+      <span class="ecu-corner tl"></span><span class="ecu-corner tr"></span><span class="ecu-corner bl"></span><span class="ecu-corner br"></span>
+
+      <header class="ecu-top mono">
+        <span><b>PP-ENG-001</b> · ENGINE CONTROL UNIT · FW 2.6</span>
+        <span class="ecu-top-r">ODISHA, IN · <span id="ecu-clock">--:--:--</span></span>
+      </header>
+
+      <section class="ecu-panel ecu-log mono" aria-label="System check">
+        <p class="ecu-h">SYSTEM CHECK</p>
+        <ul id="ecu-log"></ul>
+      </section>
+
+      <div class="ecu-center">
+        <div class="ignite-wrap">
+          <svg class="tach" id="tach" viewBox="0 0 300 300" aria-hidden="true">
+            <g id="tach-ticks"></g>
+            <circle class="ring-track" cx="150" cy="150" r="92" />
+            <circle class="ring-bar" id="ignite-progress" cx="150" cy="150" r="92" />
+            <g id="gate-needle"><line x1="150" y1="150" x2="150" y2="32" /><circle cx="150" cy="150" r="7" /></g>
+          </svg>
+          <button id="ignite-btn" class="ignite-btn" type="button" disabled aria-label="Hold to start the engine">
+            <span class="ig-label">LOADING</span>
+            <span class="ig-sub mono" id="loader-pct">0%</span>
+          </button>
+        </div>
+        <div class="ecu-readout mono">
+          <span>RPM <b id="gate-rpm">0</b></span>
+          <span>STATE <b id="gate-state">BOOTING</b></span>
+          <span>GEAR <b>N</b></span>
+        </div>
+        <p class="ig-hint mono">Press and hold START to crank the engine <span class="kbd">or hold SPACE</span></p>
+        <button id="skip-intro" class="skip mono" type="button">Skip intro &rarr;</button>
       </div>
-      <p class="mono ig-hint">Press and hold to start the engine <span class="kbd">or hold SPACE</span></p>
-      <button id="skip-intro" class="skip mono" type="button">Skip intro &rarr;</button>
+
+      <section class="ecu-panel ecu-sensors mono" aria-label="Sensors">
+        <p class="ecu-h">SENSORS</p>
+        <div id="ecu-sensors"></div>
+      </section>
+
+      <footer class="ecu-specs mono">DEMO ENGINE · 1-CYL · 4-STROKE · BORE 76 mm · STROKE 80 mm · CR 10.5:1 · REDLINE 8000 RPM</footer>
     </div>
   </div>
 
@@ -82,7 +121,7 @@
   <div class="secrets hud">
     <button id="secrets-btn" class="secrets-btn mono" type="button" aria-expanded="false" aria-controls="secrets-panel">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6z" /></svg>
-      <span>SECRETS</span> <b id="secrets-count">0/10</b>
+      <span>SECRETS</span> <b id="secrets-count">0/11</b>
     </button>
     <div class="secrets-panel" id="secrets-panel" hidden>
       <p class="mono">Hidden around this page</p>
@@ -104,15 +143,26 @@
     <!-- HERO -->
     <section id="home" class="panel" data-side="left" data-label="Home">
       <div class="card hero-card reveal">
-        <p class="eyebrow mono">// Hello, world — I'm</p>
-        <h1 class="hero-name">Priyabrata<br /><span class="grad">Parida</span></h1>
+        <div class="hero-top">
+          <div class="portrait" id="portrait" role="button" tabindex="0" aria-label="Portrait of Priyabrata Parida. Activate to run a face scan.">
+            <img src="img/portrait.jpg" alt="Priyabrata Parida" class="portrait-img" width="640" height="800" />
+            <canvas id="portrait-canvas" aria-hidden="true"></canvas>
+            <span class="pc tl"></span><span class="pc tr"></span><span class="pc bl"></span><span class="pc br"></span>
+            <span class="portrait-tag mono" id="portrait-tag">ID · PP-2021</span>
+            <span class="portrait-cta mono" id="portrait-cta">TAP TO SCAN</span>
+          </div>
+          <div class="hero-id">
+            <p class="eyebrow mono">// Hello, world — I'm</p>
+            <h1 class="hero-name">Priyabrata<br /><span class="grad">Parida</span></h1>
+          </div>
+        </div>
         <p class="hero-role mono"><span id="typed"></span><span class="caret">▍</span></p>
         <p class="lead">Mechanical engineer who designs machines, simulates them under load, and is teaching himself to automate them with code.</p>
         <div class="cta-row">
           <a class="btn primary" href="#kart"><i class="fas fa-flag-checkered"></i> See my work</a>
           <a class="btn ghost" href="#contact"><i class="fas fa-paper-plane"></i> Get in touch</a>
         </div>
-        <p class="hint mono">&#10022; Psst: every 3D model is clickable, and 10 secrets are hidden here. Hold <span class="kbd">SPACE</span> for turbo.</p>
+        <p class="hint mono">&#10022; Psst: every 3D model is clickable, and 11 secrets are hidden here. Hold <span class="kbd">SPACE</span> for turbo.</p>
       </div>
       <a href="#about" class="scroll-hint mono" aria-label="Scroll down"><span class="mouse"></span>scroll to rev the engine</a>
     </section>
