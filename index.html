@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Priyabrata Parida · Mechanical Engineer</title>
+  <meta name="description" content="Priyabrata Parida — Mechanical Engineer focused on automotive design, CAD/FEA and automation. An immersive 3D portfolio." />
+  <meta name="theme-color" content="#05060f" />
+  <meta property="og:title" content="Priyabrata Parida · Mechanical Engineer" />
+  <meta property="og:description" content="Automotive design, CAD/FEA, EV go-karts and Python — an immersive 3D portfolio." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+</head>
+<body class="locked">
+  <script>setTimeout(function(){if(!window.__ppReady){var l=document.getElementById("loader");if(l)l.remove();document.body.classList.remove("locked");}},9000);</script>
+  <canvas id="webgl" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- Ignition gate -->
+  <div id="loader">
+    <div class="loader-inner">
+      <p class="mono ig-eyebrow">PRIYABRATA PARIDA · PORTFOLIO</p>
+      <div class="ignite-wrap">
+        <svg class="ignite-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-track" cx="60" cy="60" r="54" />
+          <circle class="ring-bar" id="ignite-progress" cx="60" cy="60" r="54" />
+        </svg>
+        <button id="ignite-btn" class="ignite-btn" type="button" disabled aria-label="Hold to start the engine">
+          <span class="ig-label">LOADING</span>
+          <span class="ig-sub mono" id="loader-pct">0%</span>
+        </button>
+      </div>
+      <p class="mono ig-hint">Press and hold to start the engine <span class="kbd">or hold SPACE</span></p>
+      <button id="skip-intro" class="skip mono" type="button">Skip intro &rarr;</button>
+    </div>
+  </div>
+
+  <div class="speedlines" id="speedlines" aria-hidden="true"></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
+  <div class="hint-tip mono" id="hint-tip" aria-hidden="true"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <a href="#home" class="brand" aria-label="Back to top"><span>P</span>P</a>
+    <nav class="toplinks" aria-label="Sections">
+      <a href="#about">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#kart">Projects</a>
+      <a href="#education">Education</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="icon-btn" id="sound-btn" type="button" aria-label="Toggle engine sound" title="Engine sound">
+      <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /></svg>
+      <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M17 9.5l5 5M22 9.5l-5 5" /></svg>
+    </button>
+  </header>
+  <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+
+  <!-- Section dots -->
+  <nav class="dots" id="dots" aria-label="Section navigation"></nav>
+
+  <!-- RPM gauge: shows scroll speed, hold it for turbo -->
+  <button class="rpm hud" id="turbo-btn" type="button" aria-label="Hold for turbo boost">
+    <svg viewBox="0 0 120 70" aria-hidden="true">
+      <path class="rpm-track" d="M10 62 A50 50 0 0 1 110 62" />
+      <path class="rpm-fill" id="rpm-fill" d="M10 62 A50 50 0 0 1 110 62" />
+      <line id="rpm-needle" x1="60" y1="62" x2="60" y2="20" />
+      <circle cx="60" cy="62" r="4" />
+    </svg>
+    <span class="rpm-read mono"><span id="rpm-val">800</span> RPM</span>
+    <span class="rpm-tip mono">hold · turbo</span>
+  </button>
+
+  <!-- Secrets tracker -->
+  <div class="secrets hud">
+    <button id="secrets-btn" class="secrets-btn mono" type="button" aria-expanded="false" aria-controls="secrets-panel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6z" /></svg>
+      <span>SECRETS</span> <b id="secrets-count">0/10</b>
+    </button>
+    <div class="secrets-panel" id="secrets-panel" hidden>
+      <p class="mono">Hidden around this page</p>
+      <ul id="secrets-list"></ul>
+    </div>
+  </div>
+
+  <!-- Drive pad (touch + mouse) -->
+  <div class="drive-pad hud" id="drive-pad" hidden>
+    <button type="button" data-k="left" aria-label="Steer left">&#9664;</button>
+    <div class="col">
+      <button type="button" data-k="up" aria-label="Accelerate">&#9650;</button>
+      <button type="button" data-k="down" aria-label="Brake or reverse">&#9660;</button>
+    </div>
+    <button type="button" data-k="right" aria-label="Steer right">&#9654;</button>
+  </div>
+
+  <main id="content">
+    <!-- HERO -->
+    <section id="home" class="panel" data-side="left" data-label="Home">
+      <div class="card hero-card reveal">
+        <p class="eyebrow mono">// Hello, world — I'm</p>
+        <h1 class="hero-name">Priyabrata<br /><span class="grad">Parida</span></h1>
+        <p class="hero-role mono"><span id="typed"></span><span class="caret">▍</span></p>
+        <p class="lead">Mechanical engineer who designs machines, simulates them under load, and is teaching himself to automate them with code.</p>
+        <div class="cta-row">
+          <a class="btn primary" href="#kart"><i class="fas fa-flag-checkered"></i> See my work</a>
+          <a class="btn ghost" href="#contact"><i class="fas fa-paper-plane"></i> Get in touch</a>
+        </div>
+        <p class="hint mono">&#10022; Psst: every 3D model is clickable, and 10 secrets are hidden here. Hold <span class="kbd">SPACE</span> for turbo.</p>
+      </div>
+      <a href="#about" class="scroll-hint mono" aria-label="Scroll down"><span class="mouse"></span>scroll to rev the engine</a>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" class="panel" data-side="right" data-label="About">
+      <div class="card reveal">
+        <p class="eyebrow mono">01 · About me</p>
+        <h2>Engineering with a builder's mindset</h2>
+        <p>I'm a <strong>Mechanical Engineering graduate</strong> with a strong focus on <strong>automotive design</strong> and hands-on project experience, including leading the design team for an <strong>Electric Go-Kart</strong>.</p>
+        <p>For my thesis I researched how to optimise <strong>connecting rod materials</strong> for durability and cost-effectiveness. I'm also a self-taught <strong>Python</strong> learner, combining mechanical systems with automation and software.</p>
+        <ul class="stats">
+          <li><b>2021</b><span>B.Tech graduate</span></li>
+          <li><b>7.97</b><span>CGPA</span></li>
+          <li><b>3rd</b><span>RoboRider race</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section id="skills" class="panel" data-side="left" data-label="Skills">
+      <div class="card reveal">
+        <p class="eyebrow mono">02 · Toolbox</p>
+        <h2>Skills that mesh together</h2>
+        <div class="skill-grid">
+          <div class="skill"><i class="fas fa-drafting-compass"></i><div><b>AutoCAD</b><span>2D &amp; 3D CAD design</span></div></div>
+          <div class="skill"><i class="fas fa-cogs"></i><div><b>ANSYS Workbench</b><span>Finite element analysis</span></div></div>
+          <div class="skill"><i class="fas fa-cube"></i><div><b>PTC Creo</b><span>3D CAD modelling</span></div></div>
+          <div class="skill"><i class="fas fa-tools"></i><div><b>Fusion 360</b><span>CAD · CAM · CAE</span></div></div>
+          <div class="skill"><i class="fab fa-python"></i><div><b>Python</b><span>Scripting &amp; automation</span></div></div>
+          <div class="skill"><i class="fas fa-car-side"></i><div><b>Automotive design</b><span>Vehicle systems</span></div></div>
+        </div>
+        <p class="sub mono">Soft skills</p>
+        <div class="chips">
+          <span><i class="fas fa-users"></i> Teamwork</span>
+          <span><i class="fas fa-clock"></i> Time management</span>
+          <span><i class="fas fa-desktop"></i> Computer operating</span>
+          <span><i class="fas fa-hard-hat"></i> Hard working</span>
+          <span><i class="fas fa-flag"></i> Leadership</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECT: GO KART -->
+    <section id="kart" class="panel" data-side="right" data-label="Electric Go-Kart">
+      <div class="card reveal">
+        <p class="eyebrow mono">03 · Project — GKDC 2019</p>
+        <h2>Electric Go-Kart</h2>
+        <p>My team and I built an <strong>Electric Go-Kart from scratch</strong> to compete in the motorsport event <strong>GKDC 2019</strong>. As <strong>Team Leader of the Design Team</strong>, I oversaw vehicle design, functionality, safety and performance.</p>
+        <p>The project sharpened my technical and leadership skills and gave me hands-on experience with electric vehicle systems and motorsport engineering.</p>
+        <div class="tags"><span>EV systems</span><span>Chassis design</span><span>Team lead</span><span>Motorsport</span></div>
+        <div class="cta-row">
+          <button class="btn primary" id="drive-btn" type="button"><i class="fas fa-gamepad"></i> <span>Take the wheel</span></button>
+          <span class="key-hint mono">W A S D / arrow keys &middot; Esc to park</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECT: ROBORIDER -->
+    <section id="robo" class="panel" data-side="left" data-label="RoboRider">
+      <div class="card reveal">
+        <p class="eyebrow mono">04 · Project — Robotics</p>
+        <h2>RoboRider</h2>
+        <p class="subtitle">Arduino-based remote control vehicle</p>
+        <p>I helped develop RoboRider, a remote-controlled vehicle powered by <strong>Arduino</strong>. I assembled hardware and wrote the Arduino code that drives its movement.</p>
+        <p>It was practical experience in robotics, microcontroller programming and remote communication. Our team placed <strong>3rd</strong> in the race competition. 🏁</p>
+        <div class="tags"><span>Arduino</span><span>Embedded C</span><span>RC comms</span><span>🥉 3rd place</span></div>
+      </div>
+    </section>
+
+    <!-- PROJECT: THESIS -->
+    <section id="thesis" class="panel" data-side="right" data-label="Thesis">
+      <div class="card reveal">
+        <p class="eyebrow mono">05 · Research — Published in IJERT</p>
+        <h2>Connecting rod under different material &amp; load conditions</h2>
+        <p>I analysed candidate alloys to find the most suitable material for connecting rods that must withstand heavy loads and harsh conditions. Each was evaluated on <strong>durability</strong>, <strong>mechanical performance</strong> and <strong>cost-effectiveness</strong> to recommend an optimal material for large-scale production.</p>
+        <div class="legend" aria-label="Stress legend">
+          <span class="mono">low</span><div class="legend-bar"></div><span class="mono">high</span>
+        </div>
+        <p class="caption mono">↳ The model alongside is a visual impression of a stress plot (not real thesis data). Drag to rotate it.</p>
+        <a class="btn primary" href="./IJERT_Analysis_of_Connecting_Rod_Under_D.pdf" download><i class="fas fa-file-pdf"></i> Download thesis PDF</a>
+      </div>
+    </section>
+
+    <!-- EDUCATION -->
+    <section id="education" class="panel" data-side="left" data-label="Education">
+      <div class="card reveal">
+        <p class="eyebrow mono">06 · Education</p>
+        <h2>Where I learned</h2>
+        <ol class="timeline">
+          <li>
+            <span class="year mono">2021</span>
+            <div>
+              <b>B.Tech, Mechanical Engineering</b>
+              <span>G.I.E.T University, Gunupur, Rayagada, Odisha</span>
+              <span class="grade">CGPA 7.97</span>
+              <details>
+                <summary>Semester-wise SGPA</summary>
+                <div class="sgpa">
+                  <div><i style="--v:8.38"></i><span>S1 · 8.38</span></div>
+                  <div><i style="--v:7.96"></i><span>S2 · 7.96</span></div>
+                  <div><i style="--v:7.13"></i><span>S3 · 7.13</span></div>
+                  <div><i style="--v:7.38"></i><span>S4 · 7.38</span></div>
+                  <div><i style="--v:7.52"></i><span>S5 · 7.52</span></div>
+                  <div><i style="--v:7.96"></i><span>S6 · 7.96</span></div>
+                  <div><i style="--v:8.70"></i><span>S7 · 8.70</span></div>
+                  <div><i style="--v:9.05"></i><span>S8 · 9.05</span></div>
+                </div>
+              </details>
+            </div>
+          </li>
+          <li>
+            <span class="year mono">2017</span>
+            <div>
+              <b>Higher Secondary (12th)</b>
+              <span>Ispat Vidya Mandir, Rourkela, Odisha</span>
+              <span class="grade">52.83%</span>
+            </div>
+          </li>
+          <li>
+            <span class="year mono">2015</span>
+            <div>
+              <b>Secondary (10th)</b>
+              <span>Chinmaya Vidyalaya (O.M.), Rourkela, Odisha</span>
+              <span class="grade">80.2%</span>
+              <details>
+                <summary>Subject-wise marks</summary>
+                <ul class="marks">
+                  <li>Mathematics <b>95%</b></li><li>Sanskrit <b>92%</b></li>
+                  <li>Social Science <b>77%</b></li><li>Odia <b>74%</b></li>
+                  <li>English <b>73%</b></li><li>General Science <b>71%</b></li>
+                </ul>
+              </details>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="panel" data-side="right" data-label="Contact">
+      <div class="card reveal">
+        <p class="eyebrow mono">07 · Contact</p>
+        <h2>Let's build something</h2>
+        <p>I'm open to roles and collaborations in automotive design, CAD/FEA and engineering automation. Reach out on social media, by email or by phone, or send a message with the form below.</p>
+        <div class="contact-links">
+          <a href="mailto:priyabrata683@gmail.com"><i class="fas fa-envelope"></i> priyabrata683@gmail.com</a>
+          <a href="tel:+918249583054"><i class="fas fa-phone"></i> +91-8249583054</a>
+          <a href="https://www.linkedin.com/in/priyabrata-parida-134970189" target="_blank" rel="noopener"><i class="fab fa-linkedin"></i> LinkedIn</a>
+          <a href="https://github.com/Priyabrata683" target="_blank" rel="noopener"><i class="fab fa-github"></i> GitHub</a>
+        </div>
+        <form id="contact-form" class="form">
+          <div class="row">
+            <label>Name<input name="name" required autocomplete="name" /></label>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+          </div>
+          <label>Message<textarea name="message" rows="3" required></textarea></label>
+          <button class="btn primary" type="submit"><i class="fas fa-paper-plane"></i> Send message</button>
+        </form>
+      </div>
+      <footer class="foot mono">Designed &amp; engineered by <span class="grad">Priyabrata Parida</span> · <span id="year"></span></footer>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
