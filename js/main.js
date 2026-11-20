@@ -7,6 +7,7 @@ import * as THREE from 'three';
    and 10 hidden secrets.
 ------------------------------------------------------------------- */
 
+window.__ppAlive = true; // tells the no-JS fallback in index.html that the script loaded
 const $ = (s) => document.querySelector(s);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const damp = THREE.MathUtils.damp;
@@ -143,6 +144,7 @@ function toast(title, msg, icon = '✦') {
 
 const SECRETS = [
   ['home', 'Rev master', 'Click the engine'],
+  ['portrait', 'Face scan', 'Click the 3D portrait'],
   ['about', 'Spark of curiosity', 'Click the glowing core'],
   ['skills', 'Gearhead', 'Click the gears'],
   ['kart', 'Barrel roll', 'Click the go-kart'],
@@ -185,7 +187,7 @@ function unlock(id) {
   b.classList.add('bump');
   if (found.size === SECRETS.length) {
     setTimeout(() => {
-      toast('All 10 secrets found!', "You're officially a curious engineer. Let's talk.", '🏆');
+      toast(`All ${SECRETS.length} secrets found!`, "You're officially a curious engineer. Let's talk.", '🏆');
       Sound.fanfare();
       sceneApi?.celebrate();
     }, 900);
@@ -207,22 +209,120 @@ const onIgnite = [];
 const igBtn = $('#ignite-btn');
 const igRing = $('#ignite-progress');
 const loaderPct = $('#loader-pct');
-const RING = 339.3;
-let pct = 0;
-const loaderTimer = setInterval(() => {
-  pct = Math.min(pct + Math.ceil(Math.random() * 12), 96);
-  loaderPct.textContent = `${pct}%`;
-}, 60);
+const needle = $('#gate-needle');
+const gateRpm = $('#gate-rpm');
+const gateState = $('#gate-state');
+const RING = 578.1;
+const T0 = performance.now();
 
-function setReady() {
+// Tachometer face: ticks every 250 rpm, numerals every 1000, redline from 7000
+const rpmAngle = (rpm) => -120 + (clamp(rpm, 0, 8000) / 8000) * 240;
+(function buildTach() {
+  const rad = (deg) => (deg * Math.PI) / 180;
+  const pt = (deg, r) => [150 + Math.sin(rad(deg)) * r, 150 - Math.cos(rad(deg)) * r];
+  let h = '';
+  for (let r = 0; r <= 8000; r += 250) {
+    const a = rpmAngle(r), major = r % 1000 === 0, red = r >= 7000 ? ' red' : '';
+    const [x1, y1] = pt(a, 138), [x2, y2] = pt(a, major ? 124 : 131);
+    h += `<line class="tick${major ? ' major' : ''}${red}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" />`;
+    if (major) {
+      const [tx, ty] = pt(a, 112);
+      h += `<text class="num${red}" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}">${r / 1000}</text>`;
+    }
+  }
+  const [rx1, ry1] = pt(rpmAngle(7000), 143), [rx2, ry2] = pt(rpmAngle(8000), 143);
+  h += `<path class="redline" d="M${rx1.toFixed(1)} ${ry1.toFixed(1)} A143 143 0 0 1 ${rx2.toFixed(1)} ${ry2.toFixed(1)}" />`;
+  h += '<text class="unit" x="150" y="262">×1000 r/min</text>';
+  $('#tach-ticks').innerHTML = h;
+})();
+
+// System check log
+const LOG = [
+  ['ECU firmware 2.6', 'OK'],
+  ['Crank position sensor', 'OK'],
+  ['Cam phase sync', 'LOCKED'],
+  ['Fuel pump prime', '3.0 bar'],
+  ['Spark plug gap', '0.8 mm'],
+  ['Battery', '12.6 V'],
+  ['3D scenes compiled', '8 / 8'],
+  ['Immobiliser · visitor key', 'ACCEPTED'],
+];
+const logEl = $('#ecu-log');
+let logShown = 0;
+function logLine(label, val, cls = '') {
+  const li = document.createElement('li');
+  li.innerHTML = '<span></span><i></i><b></b>';
+  li.children[0].textContent = label;
+  li.children[2].textContent = val;
+  if (cls) li.children[2].className = cls;
+  logEl.appendChild(li);
+  return li;
+}
+
+// Sensors: [label, unit, min, max, value(p, t), decimals]
+const SENS = [
+  ['OIL PRESSURE', 'bar', 0, 6, (p, t) => p * 3.1 + (p > 0 ? Math.sin(t * 30) * 0.08 : 0), 1],
+  ['COOLANT', '°C', 0, 120, (p) => 24 + p * 6, 0],
+  ['BATTERY', 'V', 0, 15, (p) => 12.6 - p * 1.9 + (p > 0 ? Math.random() * 0.2 : 0), 1],
+  ['MANIFOLD', 'kPa', 0, 110, (p) => 101 - p * 58, 0],
+  ['IGNITION ADV', '°', 0, 40, (p) => 4 + p * 8, 1],
+  ['AIR / FUEL', ':1', 8, 20, (p) => (p > 0 ? 12.4 + Math.random() * 0.5 : 14.7), 1],
+];
+const sensEl = $('#ecu-sensors');
+const sensRows = SENS.map(([label]) => {
+  const d = document.createElement('div');
+  d.className = 'sensor';
+  d.innerHTML = '<span></span><em>--</em><i><b></b></i>';
+  d.querySelector('span').textContent = label;
+  sensEl.appendChild(d);
+  return d;
+});
+function updateSensors(t) {
+  SENS.forEach(([, unit, min, max, fn, dec], i) => {
+    const row = sensRows[i];
+    if (!gate.ready) { row.querySelector('em').textContent = '--'; return; }
+    const v = fn(gate.p, t);
+    row.querySelector('em').textContent = `${v.toFixed(dec)} ${unit}`;
+    row.querySelector('b').style.width = `${clamp((v - min) / (max - min), 0, 1) * 100}%`;
+    row.classList.toggle('hot', i === 2 && v < 11.5);
+  });
+}
+function setState(txt, cls = '') {
+  gateState.textContent = txt;
+  gateState.className = cls;
+}
+
+// IST clock
+const clockEl = $('#ecu-clock');
+const tickClock = () => {
+  try { clockEl.textContent = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata' }) + ' IST'; }
+  catch { clockEl.textContent = new Date().toLocaleTimeString(); }
+};
+tickClock();
+const clockTimer = setInterval(tickClock, 1000);
+
+let pct = 0;
+let sceneReady = false;
+const loaderTimer = setInterval(() => {
+  pct = Math.min(pct + Math.ceil(Math.random() * 7), sceneReady ? 100 : 92);
+  loaderPct.textContent = `${pct}%`;
+  while (logShown < LOG.length && pct >= ((logShown + 1) * 100) / (LOG.length + 1)) logLine(...LOG[logShown++]);
+  if (pct >= 100) finishBoot();
+}, 90);
+
+function setReady() { sceneReady = true; }
+function finishBoot() {
   if (gate.ready) return;
+  while (logShown < LOG.length) logLine(...LOG[logShown++]);
   gate.ready = true;
   window.__ppReady = true;
   clearInterval(loaderTimer);
+  loaderPct.textContent = 'HOLD';
   igBtn.disabled = false;
   igBtn.classList.add('ready');
   igBtn.querySelector('.ig-label').textContent = 'START';
-  loaderPct.textContent = 'HOLD';
+  logLine('STATUS', 'READY · HOLD START', 'warn');
+  setState('READY');
 }
 setTimeout(setReady, 7000); // safety net
 
@@ -241,12 +341,17 @@ function holdEnd() {
 igBtn.addEventListener('pointerdown', holdStart);
 window.addEventListener('pointerup', holdEnd);
 window.addEventListener('pointercancel', holdEnd);
-$('#skip-intro').addEventListener('click', () => { if (!gate.ready) setReady(); ignite(true); });
+$('#skip-intro').addEventListener('click', () => { if (!gate.ready) { setReady(); finishBoot(); } ignite(true); });
 
 function ignite(skipped = false) {
   if (gate.done) return;
   gate.done = true;
   holdEnd();
+  clearInterval(clockTimer);
+  needle.style.transform = `rotate(${rpmAngle(6500)}deg)`;
+  gateRpm.textContent = '6500';
+  setState('RUNNING', 'run');
+  logLine('IGNITION', 'RUNNING');
   $('#loader').classList.add('done');
   document.body.classList.remove('locked');
   if (!skipped) {
@@ -254,7 +359,7 @@ function ignite(skipped = false) {
     Sound.whoosh(0.9, 200, 2500, 0.14);
   }
   onIgnite.forEach((f) => f(skipped));
-  setTimeout(() => toast('Welcome aboard', 'Click the 3D models to uncover 10 hidden secrets', '✦'), 1800);
+  setTimeout(() => toast('Welcome aboard', `Click the 3D models to uncover ${SECRETS.length} hidden secrets`, '✦'), 1800);
 }
 
 (function gateLoop(last = performance.now()) {
@@ -263,6 +368,15 @@ function ignite(skipped = false) {
   const dt = Math.min((now - last) / 1000, 0.25);
   gate.p = clamp(gate.p + (gate.hold ? dt / (reduceMotion ? 0.35 : 1.3) : -dt * 1.6), 0, 1);
   igRing.style.strokeDashoffset = RING * (1 - gate.p);
+  const ts = (now - T0) / 1000;
+  // gauge self-test sweep while booting, then cranking rpm while held
+  const shown = !gate.ready
+    ? (ts < 1.8 ? Math.sin((ts / 1.8) * Math.PI) * 8000 : 0)
+    : (gate.p > 0 ? 180 + gate.p * 2700 + (gate.hold ? Math.random() * 260 : 0) : 0);
+  needle.style.transform = `rotate(${rpmAngle(shown)}deg)`;
+  gateRpm.textContent = gate.ready ? Math.round(shown / 10) * 10 : '----';
+  if (gate.ready) setState(gate.hold ? 'CRANKING' : gate.p > 0.02 ? 'SPINNING DOWN' : 'READY', gate.hold ? 'crank' : '');
+  updateSensors(ts);
   igBtn.style.transform = gate.hold && !reduceMotion
     ? `translate(${(Math.random() - 0.5) * 4 * gate.p}px, ${(Math.random() - 0.5) * 4 * gate.p}px)` : '';
   Sound.setRpm(300 + gate.p * 2800 + (gate.hold ? Math.random() * 300 : 0), gate.p > 0.02);
@@ -276,7 +390,7 @@ function ignite(skipped = false) {
 $('#year').textContent = new Date().getFullYear();
 if (!finePointer) {
   const h = $('.hero-card .hint');
-  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 10 secrets are hidden here. Hold the RPM gauge for turbo.';
+  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 11 secrets are hidden here. Hold the RPM gauge for turbo.';
 }
 
 const dotsNav = $('#dots');
@@ -487,6 +601,7 @@ try {
 }
 
 if (!renderer) {
+  LOG[6] = ['3D renderer', 'TEXT MODE', 'warn'];
   measure();
   setReady();
   onIgnite.push(() => Sound.setRpm(0, false));
@@ -1771,8 +1886,161 @@ function makeEnvScene() {
   return env;
 }
 
+/* =================================================================
+   Hero portrait — photo displaced by a depth map, tilts with the cursor,
+   click to run a "face scan" that reveals the depth mesh
+================================================================= */
+function initPortrait() {
+  const wrap = $('#portrait');
+  const canvas = $('#portrait-canvas');
+  const cta = $('#portrait-cta');
+  const tag = $('#portrait-tag');
+  let r;
+  try { r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch { return; }
+  r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  r.outputColorSpace = THREE.LinearSRGBColorSpace;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(26, 0.8, 0.1, 20);
+  cam.position.set(0, 0, 2.75);
+  const uniforms = {
+    uMap: { value: null }, uDepth: { value: null }, uAmp: { value: 0.24 },
+    uTime: { value: 0 }, uScan: { value: -1 }, uXray: { value: 0 }, uLift: { value: 0 },
+  };
+  const vert = `
+    uniform sampler2D uDepth; uniform float uAmp; uniform float uLift;
+    varying vec2 vUv; varying float vD;
+    void main() {
+      vUv = uv;
+      float d = texture2D(uDepth, uv).r;
+      vD = d;
+      vec3 p = position;
+      p.z += d * uAmp + uLift;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    }`;
+  const edge = `float edgeMask(vec2 uv) {
+      return smoothstep(0.0, 0.07, uv.x) * smoothstep(1.0, 0.93, uv.x) * smoothstep(0.0, 0.06, uv.y) * smoothstep(1.0, 0.94, uv.y);
+    }`;
+  const frag = `
+    uniform sampler2D uMap; uniform float uTime; uniform float uScan; uniform float uXray;
+    varying vec2 vUv; varying float vD;
+    ${edge}
+    void main() {
+      vec3 c = texture2D(uMap, vUv).rgb;
+      float bg = 1.0 - smoothstep(0.03, 0.22, vD);
+      c = mix(c, c * 0.35 + vec3(0.02, 0.05, 0.12), bg * 0.75);
+      float rim = smoothstep(0.04, 0.2, vD) * (1.0 - smoothstep(0.2, 0.55, vD));
+      c += vec3(0.05, 0.45, 0.55) * rim * 0.3;
+      c *= 0.95 + 0.05 * sin(vUv.y * 520.0 - uTime * 6.0);
+      float s = 1.0 - smoothstep(0.0, 0.02, abs(vUv.y - uScan));
+      c += vec3(0.2, 0.9, 1.0) * s;
+      c = mix(c, c * vec3(0.35, 0.75, 1.0) + vec3(0.0, 0.04, 0.08), uXray * 0.65);
+      gl_FragColor = vec4(c, edgeMask(vUv));
+    }`;
+  const wireFrag = `
+    uniform float uXray; varying vec2 vUv; varying float vD;
+    ${edge}
+    void main() {
+      vec3 col = mix(vec3(0.13, 0.83, 0.93), vec3(0.96, 0.45, 0.71), smoothstep(0.2, 1.0, vD));
+      gl_FragColor = vec4(col, uXray * (0.15 + 0.75 * smoothstep(0.05, 0.5, vD)) * edgeMask(vUv));
+    }`;
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 120, 150), new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag, transparent: true }));
+  const wireUniforms = { ...uniforms, uLift: { value: 0.004 } };
+  const wire = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 40, 50), new THREE.ShaderMaterial({
+    uniforms: wireUniforms, vertexShader: vert, fragmentShader: wireFrag, transparent: true, wireframe: true, depthWrite: false,
+  }));
+  const holder = new THREE.Group();
+  holder.add(face, wire);
+  scene.add(holder);
+
+  function size() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    r.setSize(w, h, false);
+    cam.aspect = w / h;
+    cam.updateProjectionMatrix();
+  }
+  new ResizeObserver(size).observe(wrap);
+  size();
+
+  const tex = new THREE.TextureLoader();
+  const load = (url) => new Promise((res, rej) => tex.load(url, res, undefined, rej));
+  const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+  window.addEventListener('pointermove', (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const near = e.clientX > rect.left - 60 && e.clientX < rect.right + 60 && e.clientY > rect.top - 60 && e.clientY < rect.bottom + 60;
+    const k = near ? 1 : 0.45;
+    tilt.ty = clamp((e.clientX - (rect.left + rect.width / 2)) / (near ? rect.width : innerWidth / 2), -1, 1) * 0.5 * k;
+    tilt.tx = clamp((e.clientY - (rect.top + rect.height / 2)) / (near ? rect.height : innerHeight / 2), -1, 1) * 0.35 * k;
+  });
+
+  let scanT = -1, xray = 0, hold = 0;
+  function scan() {
+    if (scanT >= 0) return;
+    scanT = 0;
+    wrap.classList.add('scanning');
+    wrap.classList.remove('matched');
+    cta.textContent = 'SCANNING…';
+    Sound.init();
+    Sound.tone(300, 1.3, 'sine', 0.08, 0, 1400);
+    for (let i = 0; i < 5; i++) Sound.tone(1800, 0.03, 'square', 0.03, 0.25 * i);
+  }
+  wrap.addEventListener('click', scan);
+  wrap.addEventListener('keydown', (e) => {
+    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); scan(); }
+  });
+
+  Promise.all([load('img/portrait.jpg'), load('img/portrait-depth.png')]).then(([map, depth]) => {
+    map.colorSpace = THREE.NoColorSpace;
+    map.anisotropy = 4;
+    uniforms.uMap.value = map;
+    uniforms.uDepth.value = depth;
+    wrap.classList.add('is-3d');
+    const clock = new THREE.Clock();
+    (function loop() {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.elapsedTime;
+      const visible = window.scrollY < innerHeight * 1.1 && !document.hidden;
+      if (visible) {
+        uniforms.uTime.value = t;
+        tilt.x = damp(tilt.x, tilt.tx + Math.sin(t * 0.7) * 0.03, 6, dt);
+        tilt.y = damp(tilt.y, tilt.ty + Math.sin(t * 0.5) * 0.05, 6, dt);
+        holder.rotation.set(tilt.x, tilt.y, 0);
+        if (scanT >= 0) {
+          scanT += dt / 1.5;
+          uniforms.uScan.value = 1.08 - scanT * 1.16;
+          xray = damp(xray, 1, 4, dt);
+          if (scanT >= 1) {
+            scanT = -1;
+            uniforms.uScan.value = -1;
+            hold = 2.2;
+            wrap.classList.remove('scanning');
+            wrap.classList.add('matched');
+            cta.textContent = 'MATCH ✓';
+            tag.textContent = 'MESH 2,091 VTX';
+            Sound.chime();
+            unlock('portrait');
+          }
+        } else if (hold > 0) {
+          hold -= dt;
+          if (hold <= 0) {
+            wrap.classList.remove('matched');
+            cta.textContent = finePointer ? 'CLICK TO SCAN' : 'TAP TO SCAN';
+            tag.textContent = 'ID · PP-2021';
+          }
+        } else xray = damp(xray, 0, 3, dt);
+        uniforms.uXray.value = xray;
+        wireUniforms.uXray.value = xray;
+        r.render(scene, cam);
+      }
+      requestAnimationFrame(loop);
+    })();
+  }).catch(() => { /* keep the plain photo */ });
+  if (finePointer) cta.textContent = 'CLICK TO SCAN';
+}
+
 /* ---------------- Boot ---------------- */
 if (renderer) {
   await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1500))]);
   initScene();
+  initPortrait();
 }
