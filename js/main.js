@@ -144,7 +144,6 @@ function toast(title, msg, icon = '✦') {
 
 const SECRETS = [
   ['home', 'Rev master', 'Click the engine'],
-  ['portrait', 'Face scan', 'Click the 3D portrait'],
   ['about', 'Spark of curiosity', 'Click the glowing core'],
   ['skills', 'Gearhead', 'Click the gears'],
   ['kart', 'Barrel roll', 'Click the go-kart'],
@@ -390,7 +389,7 @@ function ignite(skipped = false) {
 $('#year').textContent = new Date().getFullYear();
 if (!finePointer) {
   const h = $('.hero-card .hint');
-  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 11 secrets are hidden here. Hold the RPM gauge for turbo.';
+  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 10 secrets are hidden here. Hold the RPM gauge for turbo.';
 }
 
 const dotsNav = $('#dots');
@@ -1887,14 +1886,12 @@ function makeEnvScene() {
 }
 
 /* =================================================================
-   Hero portrait — photo displaced by a depth map, tilts with the cursor,
-   click to run a "face scan" that reveals the depth mesh
+   Hero portrait — the photo on a depth-displaced mesh that tilts gently
+   with the cursor, giving it real 3D depth
 ================================================================= */
 function initPortrait() {
   const wrap = $('#portrait');
   const canvas = $('#portrait-canvas');
-  const cta = $('#portrait-cta');
-  const tag = $('#portrait-tag');
   let r;
   try { r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch { return; }
   r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1902,55 +1899,25 @@ function initPortrait() {
   const scene = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(26, 0.8, 0.1, 20);
   cam.position.set(0, 0, 2.75);
-  const uniforms = {
-    uMap: { value: null }, uDepth: { value: null }, uAmp: { value: 0.24 },
-    uTime: { value: 0 }, uScan: { value: -1 }, uXray: { value: 0 }, uLift: { value: 0 },
-  };
-  const vert = `
-    uniform sampler2D uDepth; uniform float uAmp; uniform float uLift;
-    varying vec2 vUv; varying float vD;
-    void main() {
-      vUv = uv;
-      float d = texture2D(uDepth, uv).r;
-      vD = d;
-      vec3 p = position;
-      p.z += d * uAmp + uLift;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-    }`;
-  const edge = `float edgeMask(vec2 uv) {
-      return smoothstep(0.0, 0.07, uv.x) * smoothstep(1.0, 0.93, uv.x) * smoothstep(0.0, 0.06, uv.y) * smoothstep(1.0, 0.94, uv.y);
-    }`;
-  const frag = `
-    uniform sampler2D uMap; uniform float uTime; uniform float uScan; uniform float uXray;
-    varying vec2 vUv; varying float vD;
-    ${edge}
-    void main() {
-      vec3 c = texture2D(uMap, vUv).rgb;
-      float bg = 1.0 - smoothstep(0.03, 0.22, vD);
-      c = mix(c, c * 0.35 + vec3(0.02, 0.05, 0.12), bg * 0.75);
-      float rim = smoothstep(0.04, 0.2, vD) * (1.0 - smoothstep(0.2, 0.55, vD));
-      c += vec3(0.05, 0.45, 0.55) * rim * 0.3;
-      c *= 0.95 + 0.05 * sin(vUv.y * 520.0 - uTime * 6.0);
-      float s = 1.0 - smoothstep(0.0, 0.02, abs(vUv.y - uScan));
-      c += vec3(0.2, 0.9, 1.0) * s;
-      c = mix(c, c * vec3(0.35, 0.75, 1.0) + vec3(0.0, 0.04, 0.08), uXray * 0.65);
-      gl_FragColor = vec4(c, edgeMask(vUv));
-    }`;
-  const wireFrag = `
-    uniform float uXray; varying vec2 vUv; varying float vD;
-    ${edge}
-    void main() {
-      vec3 col = mix(vec3(0.13, 0.83, 0.93), vec3(0.96, 0.45, 0.71), smoothstep(0.2, 1.0, vD));
-      gl_FragColor = vec4(col, uXray * (0.15 + 0.75 * smoothstep(0.05, 0.5, vD)) * edgeMask(vUv));
-    }`;
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 120, 150), new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag, transparent: true }));
-  const wireUniforms = { ...uniforms, uLift: { value: 0.004 } };
-  const wire = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 40, 50), new THREE.ShaderMaterial({
-    uniforms: wireUniforms, vertexShader: vert, fragmentShader: wireFrag, transparent: true, wireframe: true, depthWrite: false,
-  }));
-  const holder = new THREE.Group();
-  holder.add(face, wire);
-  scene.add(holder);
+  const uniforms = { uMap: { value: null }, uDepth: { value: null }, uAmp: { value: 0.22 } };
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1, 1.375, 100, 125),
+    new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: `
+        uniform sampler2D uDepth; uniform float uAmp; varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          p.z += texture2D(uDepth, uv).r * uAmp;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: `
+        uniform sampler2D uMap; varying vec2 vUv;
+        void main() { gl_FragColor = vec4(texture2D(uMap, vUv).rgb, 1.0); }`,
+    })
+  );
+  scene.add(mesh);
 
   function size() {
     const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -1962,33 +1929,14 @@ function initPortrait() {
   new ResizeObserver(size).observe(wrap);
   size();
 
-  const tex = new THREE.TextureLoader();
-  const load = (url) => new Promise((res, rej) => tex.load(url, res, undefined, rej));
   const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
   window.addEventListener('pointermove', (e) => {
-    const rect = wrap.getBoundingClientRect();
-    const near = e.clientX > rect.left - 60 && e.clientX < rect.right + 60 && e.clientY > rect.top - 60 && e.clientY < rect.bottom + 60;
-    const k = near ? 1 : 0.45;
-    tilt.ty = clamp((e.clientX - (rect.left + rect.width / 2)) / (near ? rect.width : innerWidth / 2), -1, 1) * 0.5 * k;
-    tilt.tx = clamp((e.clientY - (rect.top + rect.height / 2)) / (near ? rect.height : innerHeight / 2), -1, 1) * 0.35 * k;
+    tilt.ty = (e.clientX / innerWidth - 0.5) * 0.4;
+    tilt.tx = (e.clientY / innerHeight - 0.5) * 0.25;
   });
 
-  let scanT = -1, xray = 0, hold = 0;
-  function scan() {
-    if (scanT >= 0) return;
-    scanT = 0;
-    wrap.classList.add('scanning');
-    wrap.classList.remove('matched');
-    cta.textContent = 'SCANNING…';
-    Sound.init();
-    Sound.tone(300, 1.3, 'sine', 0.08, 0, 1400);
-    for (let i = 0; i < 5; i++) Sound.tone(1800, 0.03, 'square', 0.03, 0.25 * i);
-  }
-  wrap.addEventListener('click', scan);
-  wrap.addEventListener('keydown', (e) => {
-    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); scan(); }
-  });
-
+  const tex = new THREE.TextureLoader();
+  const load = (url) => new Promise((res, rej) => tex.load(url, res, undefined, rej));
   Promise.all([load('img/portrait.jpg'), load('img/portrait-depth.png')]).then(([map, depth]) => {
     map.colorSpace = THREE.NoColorSpace;
     map.anisotropy = 4;
@@ -1999,43 +1947,16 @@ function initPortrait() {
     (function loop() {
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
-      const visible = window.scrollY < innerHeight * 1.1 && !document.hidden;
-      if (visible) {
-        uniforms.uTime.value = t;
-        tilt.x = damp(tilt.x, tilt.tx + Math.sin(t * 0.7) * 0.03, 6, dt);
-        tilt.y = damp(tilt.y, tilt.ty + Math.sin(t * 0.5) * 0.05, 6, dt);
-        holder.rotation.set(tilt.x, tilt.y, 0);
-        if (scanT >= 0) {
-          scanT += dt / 1.5;
-          uniforms.uScan.value = 1.08 - scanT * 1.16;
-          xray = damp(xray, 1, 4, dt);
-          if (scanT >= 1) {
-            scanT = -1;
-            uniforms.uScan.value = -1;
-            hold = 2.2;
-            wrap.classList.remove('scanning');
-            wrap.classList.add('matched');
-            cta.textContent = 'MATCH ✓';
-            tag.textContent = 'MESH 2,091 VTX';
-            Sound.chime();
-            unlock('portrait');
-          }
-        } else if (hold > 0) {
-          hold -= dt;
-          if (hold <= 0) {
-            wrap.classList.remove('matched');
-            cta.textContent = finePointer ? 'CLICK TO SCAN' : 'TAP TO SCAN';
-            tag.textContent = 'ID · PP-2021';
-          }
-        } else xray = damp(xray, 0, 3, dt);
-        uniforms.uXray.value = xray;
-        wireUniforms.uXray.value = xray;
+      if (window.scrollY < innerHeight * 1.1 && !document.hidden) {
+        const idle = reduceMotion ? 0 : 1;
+        tilt.x = damp(tilt.x, tilt.tx + Math.sin(t * 0.6) * 0.02 * idle, 5, dt);
+        tilt.y = damp(tilt.y, tilt.ty + Math.sin(t * 0.4) * 0.04 * idle, 5, dt);
+        mesh.rotation.set(tilt.x, tilt.y, 0);
         r.render(scene, cam);
       }
       requestAnimationFrame(loop);
     })();
   }).catch(() => { /* keep the plain photo */ });
-  if (finePointer) cta.textContent = 'CLICK TO SCAN';
 }
 
 /* ---------------- Boot ---------------- */
