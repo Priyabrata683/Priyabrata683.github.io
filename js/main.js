@@ -144,7 +144,6 @@ function toast(title, msg, icon = '✦') {
 
 const SECRETS = [
   ['home', 'Rev master', 'Click the engine'],
-  ['portrait', 'Face scan', 'Click the 3D portrait'],
   ['about', 'Spark of curiosity', 'Click the glowing core'],
   ['skills', 'Gearhead', 'Click the gears'],
   ['kart', 'Barrel roll', 'Click the go-kart'],
@@ -390,7 +389,7 @@ function ignite(skipped = false) {
 $('#year').textContent = new Date().getFullYear();
 if (!finePointer) {
   const h = $('.hero-card .hint');
-  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 11 secrets are hidden here. Hold the RPM gauge for turbo.';
+  if (h) h.innerHTML = '&#10022; Psst: tap any 3D model, and 10 secrets are hidden here. Hold the RPM gauge for turbo.';
 }
 
 const dotsNav = $('#dots');
@@ -498,6 +497,147 @@ $('#contact-form').addEventListener('submit', (e) => {
   window.location.href = `mailto:priyabrata683@gmail.com?subject=${subject}&body=${body}`;
 });
 
+/* ---------------- Theme: pull cord with circular reveal ---------------- */
+const cord = $('#theme-cord');
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+const currentTheme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+function setTheme(t) {
+  if (t === 'light') document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+  store.set('pp-theme', t);
+  themeMeta.setAttribute('content', t === 'light' ? '#e9eef5' : '#05060f');
+  cord.setAttribute('aria-label', t === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+  sceneApi?.setTheme(t === 'light');
+}
+function toggleTheme() {
+  const next = currentTheme() === 'light' ? 'dark' : 'light';
+  Sound.init();
+  Sound.tone(next === 'light' ? 1200 : 600, 0.06, 'square', 0.05);
+  const k = cord.querySelector('.cord-knob').getBoundingClientRect();
+  const x = k.left + k.width / 2, y = k.top + k.height / 2;
+  if (!document.startViewTransition || reduceMotion) { setTheme(next); return; }
+  const vt = document.startViewTransition(() => setTheme(next));
+  vt.ready.then(() => {
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 800, easing: 'cubic-bezier(.65, 0, .35, 1)', pseudoElement: '::view-transition-new(root)' }
+    );
+  }).catch(() => {});
+}
+setTheme(currentTheme());
+(function wireCord() {
+  let startY = null, dy = 0;
+  const reset = () => { startY = null; cord.classList.remove('dragging'); cord.style.setProperty('--pull', '0px'); };
+  cord.addEventListener('pointerdown', (e) => {
+    startY = e.clientY; dy = 0;
+    try { cord.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    cord.classList.add('dragging');
+  });
+  cord.addEventListener('pointermove', (e) => {
+    if (startY === null) return;
+    dy = clamp(e.clientY - startY, 0, 70);
+    cord.style.setProperty('--pull', `${dy}px`);
+  });
+  cord.addEventListener('pointerup', () => {
+    if (startY === null) return;
+    const pulled = dy;
+    reset();
+    if (pulled > 26 || pulled < 4) toggleTheme(); // a firm pull, or a simple tap
+  });
+  cord.addEventListener('pointercancel', reset);
+  cord.addEventListener('click', (e) => {
+    if (e.detail !== 0) return; // keyboard activation only; pointer handled above
+    cord.style.setProperty('--pull', '30px');
+    setTimeout(() => cord.style.setProperty('--pull', '0px'), 160);
+    toggleTheme();
+  });
+})();
+
+/* ---------------- Project case studies ---------------- */
+const CASES = {
+  kart: {
+    eyebrow: 'Case study · Motorsport · GKDC 2019',
+    title: 'Electric Go-Kart',
+    lead: 'My team built an electric go-kart from scratch to take part in the GKDC 2019 motorsport event. I led the design team.',
+    facts: [['GKDC 2019', 'motorsport event'], ['Design lead', 'my role in the team'], ['Electric', 'drivetrain'], ['From scratch', 'designed and built by us']],
+    sections: [
+      ['Goal', '<p>Design and build a working electric go-kart from scratch, ready to compete at GKDC 2019.</p>'],
+      ['My role', '<p>Team Leader of the Design Team.</p>'],
+      ['What I did', '<ul><li>Oversaw the design of the vehicle.</li><li>Was responsible for its functionality, safety and performance.</li><li>Worked hands-on with the electric vehicle systems.</li></ul>'],
+      ['What I learned', '<ul><li>Leading a design team through a full build.</li><li>Electric vehicle systems in practice.</li><li>Motorsport engineering.</li></ul>'],
+      ['Result', '<p>A complete electric go-kart, designed and built by our team for GKDC 2019.</p>', true],
+    ],
+  },
+  robo: {
+    eyebrow: 'Case study · Robotics · Race competition',
+    title: 'RoboRider',
+    lead: 'An Arduino-powered remote-control vehicle. I assembled the hardware and wrote the code that drives it, and our team finished 3rd in the race.',
+    facts: [['3rd place', 'in the race competition'], ['Arduino', 'microcontroller'], ['Hardware + code', 'my part of the build']],
+    sections: [
+      ['Goal', '<p>Build a remote-controlled vehicle, powered by an Arduino, to compete in a race.</p>'],
+      ['My role', '<p>Team member working on both the hardware and the software.</p>'],
+      ['What I did', '<ul><li>Assembled the hardware components.</li><li>Wrote the Arduino code that controls its movement.</li></ul>'],
+      ['What I learned', '<ul><li>Robotics.</li><li>Microcontroller programming.</li><li>Remote communication.</li></ul>'],
+      ['Result', '<p>Our team placed 3rd in the race competition.</p>', true],
+    ],
+  },
+  thesis: {
+    eyebrow: 'Case study · Research · IJERT, Vol. 10 Issue 04, April 2021',
+    title: 'Choosing a better material for a connecting rod',
+    lead: 'The connecting rod is the most highly stressed part of an IC engine, and when one fails the engine is usually destroyed. We compared four lightweight materials under extreme load to find a better one to make it from.',
+    facts: [['36,192 N', 'compressive load on the rod'], ['4', 'materials compared'], ['27,137', 'nodes in the ANSYS mesh'], ['31%', 'lower density: BeI220H vs the aluminium alloys']],
+    sections: [
+      ['The question', '<p>Which of BeI220H (a beryllium alloy), Al A360, Al 5083 and Al 7075-T6 makes the best connecting rod: lighter, stiffer and able to survive extreme loading?</p>'],
+      ['My role', '<p>Co-author of the paper, working in a team of four students under Asst. Prof. Sasank Shekhar Panda at GIET University.</p>'],
+      ['Method', `<ul>
+        <li>Based the study on the Bajaj Pulsar 150 engine (bore 58 mm, stroke 56.4 mm).</li>
+        <li>Calculated the gas pressure with the gas equation, then the net force on the rod: 39,631 N piston force minus 3,439 N inertia force gives 36,192 N.</li>
+        <li>Modelled the rod in Fusion 360 and meshed it in ANSYS with tetrahedral elements (27,137 nodes, 18,006 elements).</li>
+        <li>Ran two compressive load cases: big end fixed with the load on the small end, and the reverse.</li>
+        <li>Compared total deformation, maximum principal elastic strain, equivalent stress and safety factor.</li>
+      </ul>`, true],
+      ['Results', `<div class="case-table"><table>
+        <thead><tr><th>Material</th><th>Density g/cc</th><th>Deformation mm<br>small / big end</th><th>Equiv. stress MPa<br>small / big end</th><th>Safety factor<br>small / big end</th></tr></thead>
+        <tbody>
+          <tr class="pick"><td>BeI220H</td><td class="best">1.844</td><td class="best">0.145 / 0.444</td><td>989.6 / 1332.7</td><td>0.34 / 0.25</td></tr>
+          <tr><td>Al A360</td><td>2.68</td><td>0.613 / 1.909</td><td>921.7 / 1355.0</td><td>0.18 / 0.12</td></tr>
+          <tr><td>Al 5083</td><td>2.66</td><td>0.620 / 1.895</td><td>925.0 / 1277.5</td><td>0.24 / 0.17</td></tr>
+          <tr><td>Al 7075-T6</td><td>2.67</td><td>0.607 / 1.849</td><td>921.7 / 1336.6</td><td class="best">0.54 / 0.37</td></tr>
+        </tbody></table></div>
+        <p class="note">ANSYS results from the published paper. Green marks the best value in each column where one material clearly leads.</p>`, true],
+      ['Conclusion', '<p>BeI220H had the lowest deformation and strain in both load cases, the lowest weight, and the second-highest safety factor, so we recommended it for manufacturing connecting rods.</p>', true],
+    ],
+    actions: '<a class="btn primary" href="./IJERT_Analysis_of_Connecting_Rod_Under_D.pdf" download><i class="fas fa-file-pdf"></i> Download the paper (PDF)</a>',
+  },
+};
+const caseDialog = $('#case-dialog');
+const caseBody = $('#case-body');
+function openCase(id) {
+  const c = CASES[id];
+  if (!c) return;
+  caseBody.innerHTML = `
+    <p class="eyebrow mono">${c.eyebrow}</p>
+    <h2 id="case-title">${c.title}</h2>
+    <p class="case-lead">${c.lead}</p>
+    <div class="case-facts">${c.facts.map(([b, t]) => `<div><b>${b}</b><span>${t}</span></div>`).join('')}</div>
+    <div class="case-sections">${c.sections.map(([h, body, wide]) => `<section class="${wide ? 'wide' : ''}"><h3>${h}</h3>${body}</section>`).join('')}</div>
+    ${c.actions ? `<div class="case-actions">${c.actions}</div>` : ''}`;
+  caseDialog.querySelector('.case-inner').scrollTop = 0;
+  if (typeof caseDialog.showModal === 'function') caseDialog.showModal();
+  else caseDialog.setAttribute('open', '');
+  document.body.classList.add('modal-open');
+  Sound.init();
+  Sound.whoosh(0.4, 600, 2000, 0.08);
+}
+function closeCase() {
+  if (caseDialog.open) caseDialog.close();
+}
+caseDialog.addEventListener('close', () => document.body.classList.remove('modal-open'));
+caseDialog.querySelector('.case-close').addEventListener('click', closeCase);
+caseDialog.addEventListener('click', (e) => { if (e.target === caseDialog) closeCase(); });
+document.querySelectorAll('.case-btn').forEach((b) => b.addEventListener('click', () => openCase(b.dataset.case)));
+
 /* ---------------- Input: turbo + drive ---------------- */
 const input = { turbo: false, keys: { up: false, down: false, left: false, right: false } };
 const drive = { on: false };
@@ -527,7 +667,7 @@ document.querySelectorAll('#drive-pad button').forEach((b) => {
 });
 
 window.addEventListener('keydown', (e) => {
-  if (typing(e)) return;
+  if (typing(e) || caseDialog.open) return;
   if (!gate.done) {
     if (e.code === 'Space' || e.code === 'Enter') holdStart(e);
     return;
@@ -720,7 +860,7 @@ function initScene() {
   raycaster.camera = camera;
   raycaster.params.Points.threshold = 0.05;
   const tip = $('#hint-tip');
-  const uiTarget = (el) => el.closest?.('.card, a, button, input, textarea, nav, header, .hud, #loader');
+  const uiTarget = (el) => el.closest?.('.card, a, button, input, textarea, nav, header, .hud, #loader, dialog, .cord');
   let hovered = null;
 
   function setPointer(e) {
@@ -780,6 +920,14 @@ function initScene() {
   const tmp = new THREE.Vector3();
   const confetti = ['#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#4ade80', '#ffffff'];
   sceneApi = {
+    setTheme(light) {
+      scene.fog.color.set(light ? 0xe9eef5 : 0x05060f);
+      stars.points.material.color.set(light ? 0x475569 : 0xffffff);
+      grid.material.opacity = light ? 0.12 : 0.06;
+      sparks.setLight(light);
+      renderer.toneMappingExposure = light ? 1.0 : 1.1;
+      renderer.render(scene, camera);
+    },
     celebrate() {
       for (let k = 0; k < 7; k++) {
         setTimeout(() => {
@@ -789,6 +937,7 @@ function initScene() {
       }
     },
   };
+  sceneApi.setTheme(currentTheme() === 'light');
   let camZ = 34;
   let camZTarget = 34;
   let warp = 3;
@@ -1721,6 +1870,14 @@ class Sparks {
     }));
     this.points.frustumCulled = false;
     this.c = new THREE.Color();
+    this.light = false;
+  }
+  setLight(light) {
+    this.light = light;
+    const m = this.points.material;
+    m.blending = light ? THREE.MultiplyBlending : THREE.AdditiveBlending;
+    m.premultipliedAlpha = light;
+    m.needsUpdate = true;
   }
   burst(p, colors, count = 60, speed = 4) {
     for (let k = 0; k < count; k++) {
@@ -1751,9 +1908,10 @@ class Sparks {
       this.pos[j + 1] += this.vel[j + 1] * dt;
       this.pos[j + 2] += this.vel[j + 2] * dt;
       const k = Math.max(this.life[i] / this.max[i], 0);
-      this.col[j] = this.base[j] * k;
-      this.col[j + 1] = this.base[j + 1] * k;
-      this.col[j + 2] = this.base[j + 2] * k;
+      const w = this.light ? 1 - k : 0; // light theme: fade toward white (invisible under multiply)
+      this.col[j] = this.base[j] * k + w;
+      this.col[j + 1] = this.base[j + 1] * k + w;
+      this.col[j + 2] = this.base[j + 2] * k + w;
       if (this.life[i] <= 0) this.pos[j + 1] = -9999;
     }
     this.alive = any;
@@ -1887,14 +2045,12 @@ function makeEnvScene() {
 }
 
 /* =================================================================
-   Hero portrait — photo displaced by a depth map, tilts with the cursor,
-   click to run a "face scan" that reveals the depth mesh
+   Hero portrait — the photo on a depth-displaced mesh that tilts gently
+   with the cursor, giving it real 3D depth
 ================================================================= */
 function initPortrait() {
   const wrap = $('#portrait');
   const canvas = $('#portrait-canvas');
-  const cta = $('#portrait-cta');
-  const tag = $('#portrait-tag');
   let r;
   try { r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch { return; }
   r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1902,55 +2058,25 @@ function initPortrait() {
   const scene = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(26, 0.8, 0.1, 20);
   cam.position.set(0, 0, 2.75);
-  const uniforms = {
-    uMap: { value: null }, uDepth: { value: null }, uAmp: { value: 0.24 },
-    uTime: { value: 0 }, uScan: { value: -1 }, uXray: { value: 0 }, uLift: { value: 0 },
-  };
-  const vert = `
-    uniform sampler2D uDepth; uniform float uAmp; uniform float uLift;
-    varying vec2 vUv; varying float vD;
-    void main() {
-      vUv = uv;
-      float d = texture2D(uDepth, uv).r;
-      vD = d;
-      vec3 p = position;
-      p.z += d * uAmp + uLift;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-    }`;
-  const edge = `float edgeMask(vec2 uv) {
-      return smoothstep(0.0, 0.07, uv.x) * smoothstep(1.0, 0.93, uv.x) * smoothstep(0.0, 0.06, uv.y) * smoothstep(1.0, 0.94, uv.y);
-    }`;
-  const frag = `
-    uniform sampler2D uMap; uniform float uTime; uniform float uScan; uniform float uXray;
-    varying vec2 vUv; varying float vD;
-    ${edge}
-    void main() {
-      vec3 c = texture2D(uMap, vUv).rgb;
-      float bg = 1.0 - smoothstep(0.03, 0.22, vD);
-      c = mix(c, c * 0.35 + vec3(0.02, 0.05, 0.12), bg * 0.75);
-      float rim = smoothstep(0.04, 0.2, vD) * (1.0 - smoothstep(0.2, 0.55, vD));
-      c += vec3(0.05, 0.45, 0.55) * rim * 0.3;
-      c *= 0.95 + 0.05 * sin(vUv.y * 520.0 - uTime * 6.0);
-      float s = 1.0 - smoothstep(0.0, 0.02, abs(vUv.y - uScan));
-      c += vec3(0.2, 0.9, 1.0) * s;
-      c = mix(c, c * vec3(0.35, 0.75, 1.0) + vec3(0.0, 0.04, 0.08), uXray * 0.65);
-      gl_FragColor = vec4(c, edgeMask(vUv));
-    }`;
-  const wireFrag = `
-    uniform float uXray; varying vec2 vUv; varying float vD;
-    ${edge}
-    void main() {
-      vec3 col = mix(vec3(0.13, 0.83, 0.93), vec3(0.96, 0.45, 0.71), smoothstep(0.2, 1.0, vD));
-      gl_FragColor = vec4(col, uXray * (0.15 + 0.75 * smoothstep(0.05, 0.5, vD)) * edgeMask(vUv));
-    }`;
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 120, 150), new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag, transparent: true }));
-  const wireUniforms = { ...uniforms, uLift: { value: 0.004 } };
-  const wire = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.25, 40, 50), new THREE.ShaderMaterial({
-    uniforms: wireUniforms, vertexShader: vert, fragmentShader: wireFrag, transparent: true, wireframe: true, depthWrite: false,
-  }));
-  const holder = new THREE.Group();
-  holder.add(face, wire);
-  scene.add(holder);
+  const uniforms = { uMap: { value: null }, uDepth: { value: null }, uAmp: { value: 0.22 } };
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1, 1.375, 100, 125),
+    new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: `
+        uniform sampler2D uDepth; uniform float uAmp; varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vec3 p = position;
+          p.z += texture2D(uDepth, uv).r * uAmp;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: `
+        uniform sampler2D uMap; varying vec2 vUv;
+        void main() { gl_FragColor = vec4(texture2D(uMap, vUv).rgb, 1.0); }`,
+    })
+  );
+  scene.add(mesh);
 
   function size() {
     const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -1962,33 +2088,14 @@ function initPortrait() {
   new ResizeObserver(size).observe(wrap);
   size();
 
-  const tex = new THREE.TextureLoader();
-  const load = (url) => new Promise((res, rej) => tex.load(url, res, undefined, rej));
   const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
   window.addEventListener('pointermove', (e) => {
-    const rect = wrap.getBoundingClientRect();
-    const near = e.clientX > rect.left - 60 && e.clientX < rect.right + 60 && e.clientY > rect.top - 60 && e.clientY < rect.bottom + 60;
-    const k = near ? 1 : 0.45;
-    tilt.ty = clamp((e.clientX - (rect.left + rect.width / 2)) / (near ? rect.width : innerWidth / 2), -1, 1) * 0.5 * k;
-    tilt.tx = clamp((e.clientY - (rect.top + rect.height / 2)) / (near ? rect.height : innerHeight / 2), -1, 1) * 0.35 * k;
+    tilt.ty = (e.clientX / innerWidth - 0.5) * 0.4;
+    tilt.tx = (e.clientY / innerHeight - 0.5) * 0.25;
   });
 
-  let scanT = -1, xray = 0, hold = 0;
-  function scan() {
-    if (scanT >= 0) return;
-    scanT = 0;
-    wrap.classList.add('scanning');
-    wrap.classList.remove('matched');
-    cta.textContent = 'SCANNING…';
-    Sound.init();
-    Sound.tone(300, 1.3, 'sine', 0.08, 0, 1400);
-    for (let i = 0; i < 5; i++) Sound.tone(1800, 0.03, 'square', 0.03, 0.25 * i);
-  }
-  wrap.addEventListener('click', scan);
-  wrap.addEventListener('keydown', (e) => {
-    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); scan(); }
-  });
-
+  const tex = new THREE.TextureLoader();
+  const load = (url) => new Promise((res, rej) => tex.load(url, res, undefined, rej));
   Promise.all([load('img/portrait.jpg'), load('img/portrait-depth.png')]).then(([map, depth]) => {
     map.colorSpace = THREE.NoColorSpace;
     map.anisotropy = 4;
@@ -1999,43 +2106,16 @@ function initPortrait() {
     (function loop() {
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
-      const visible = window.scrollY < innerHeight * 1.1 && !document.hidden;
-      if (visible) {
-        uniforms.uTime.value = t;
-        tilt.x = damp(tilt.x, tilt.tx + Math.sin(t * 0.7) * 0.03, 6, dt);
-        tilt.y = damp(tilt.y, tilt.ty + Math.sin(t * 0.5) * 0.05, 6, dt);
-        holder.rotation.set(tilt.x, tilt.y, 0);
-        if (scanT >= 0) {
-          scanT += dt / 1.5;
-          uniforms.uScan.value = 1.08 - scanT * 1.16;
-          xray = damp(xray, 1, 4, dt);
-          if (scanT >= 1) {
-            scanT = -1;
-            uniforms.uScan.value = -1;
-            hold = 2.2;
-            wrap.classList.remove('scanning');
-            wrap.classList.add('matched');
-            cta.textContent = 'MATCH ✓';
-            tag.textContent = 'MESH 2,091 VTX';
-            Sound.chime();
-            unlock('portrait');
-          }
-        } else if (hold > 0) {
-          hold -= dt;
-          if (hold <= 0) {
-            wrap.classList.remove('matched');
-            cta.textContent = finePointer ? 'CLICK TO SCAN' : 'TAP TO SCAN';
-            tag.textContent = 'ID · PP-2021';
-          }
-        } else xray = damp(xray, 0, 3, dt);
-        uniforms.uXray.value = xray;
-        wireUniforms.uXray.value = xray;
+      if (window.scrollY < innerHeight * 1.1 && !document.hidden) {
+        const idle = reduceMotion ? 0 : 1;
+        tilt.x = damp(tilt.x, tilt.tx + Math.sin(t * 0.6) * 0.02 * idle, 5, dt);
+        tilt.y = damp(tilt.y, tilt.ty + Math.sin(t * 0.4) * 0.04 * idle, 5, dt);
+        mesh.rotation.set(tilt.x, tilt.y, 0);
         r.render(scene, cam);
       }
       requestAnimationFrame(loop);
     })();
   }).catch(() => { /* keep the plain photo */ });
-  if (finePointer) cta.textContent = 'CLICK TO SCAN';
 }
 
 /* ---------------- Boot ---------------- */
