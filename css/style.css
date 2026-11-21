@@ -512,3 +512,110 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-
   .ecu-readout { gap: 10px; font-size: .6rem; }
 }
 @media (hover: none) { .ig-hint .kbd { display: none; } }
+
+/* ================= Pull cord (theme switch) ================= */
+:root { --surface: #0b1224; --good: #4ade80; }
+.topbar .icon-btn { margin-left: 58px; }
+.cord {
+  position: fixed; top: 0; right: calc(clamp(16px, 4vw, 48px) + 62px); z-index: 25;
+  width: 36px; padding: 0 0 6px; border: 0; background: none; cursor: grab; touch-action: none;
+  display: flex; flex-direction: column; align-items: center; transform-origin: 50% 0; --pull: 0px; color: inherit;
+}
+.cord:active { cursor: grabbing; }
+.cord:hover { animation: sway 1.4s ease-in-out; }
+@keyframes sway { 25% { transform: rotate(7deg); } 60% { transform: rotate(-5deg); } 85% { transform: rotate(2deg); } }
+.cord-line { width: 2px; height: calc(58px + var(--pull)); background: linear-gradient(var(--line), var(--muted)); transition: height .6s cubic-bezier(.3, 1.8, .5, 1); }
+.cord-knob {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--amber);
+  background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+.cord.dragging .cord-line { transition: none; }
+.cord-knob svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.cord .ic-moon { display: none; }
+[data-theme="light"] .cord .ic-sun { display: none; }
+[data-theme="light"] .cord .ic-moon { display: block; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* ================= Light theme ================= */
+:root[data-theme="light"] {
+  --bg: #e9eef5; --ink: #0f172a; --muted: #475569; --line: rgba(15, 23, 42, .13); --glass: rgba(255, 255, 255, .74);
+  --cyan: #0e7490; --violet: #6d28d9; --pink: #be185d; --amber: #b45309; --surface: #ffffff; --good: #15803d;
+  color-scheme: light;
+}
+[data-theme="light"] body { background: radial-gradient(1200px 800px at 70% 10%, #ffffff 0%, var(--bg) 60%) fixed, var(--bg); }
+[data-theme="light"] .vignette { background: radial-gradient(ellipse at center, transparent 60%, rgba(15, 23, 42, .10) 100%); }
+[data-theme="light"] .topbar { background: linear-gradient(to bottom, rgba(233, 238, 245, .9), transparent); }
+[data-theme="light"] p, [data-theme="light"] .lead { color: #334155; }
+[data-theme="light"] strong, [data-theme="light"] .toplinks a:hover, [data-theme="light"] .toplinks a.active { color: #0f172a; }
+[data-theme="light"] .card { box-shadow: 0 30px 80px rgba(15, 23, 42, .12), inset 0 1px 0 rgba(255, 255, 255, .7); }
+[data-theme="light"] .hero-card { background: rgba(255, 255, 255, .62); }
+[data-theme="light"] .hero-name .line + .line .ch { filter: brightness(.72) saturate(1.4); }
+[data-theme="light"] .stats li, [data-theme="light"] .skill, [data-theme="light"] .contact-links a,
+[data-theme="light"] .form input, [data-theme="light"] .form textarea, [data-theme="light"] .btn.ghost { background: rgba(15, 23, 42, .035); }
+[data-theme="light"] .chips span { background: rgba(109, 40, 217, .08); color: #5b21b6; }
+[data-theme="light"] .chips i { color: #15803d; }
+[data-theme="light"] .tags span { background: rgba(14, 116, 144, .08); color: #155e75; }
+[data-theme="light"] .year { background: #fff; }
+[data-theme="light"] .marks b, [data-theme="light"] .rpm-read span, [data-theme="light"] .secrets-btn b,
+[data-theme="light"] .dots button::after, [data-theme="light"] .secrets-panel li.got, [data-theme="light"] .toast span:not(.t-ico) { color: #0f172a; }
+[data-theme="light"] .sgpa i { background: rgba(15, 23, 42, .06); }
+[data-theme="light"] .dots button { border-color: rgba(15, 23, 42, .45); }
+[data-theme="light"] .toast, [data-theme="light"] .secrets-panel { background: rgba(255, 255, 255, .97); box-shadow: 0 16px 40px rgba(15, 23, 42, .18); }
+[data-theme="light"] .kbd { background: rgba(15, 23, 42, .06); color: #0f172a; }
+[data-theme="light"] .drive-pad button { color: #0f172a; }
+[data-theme="light"] .drive-pad button.on { color: #fff; }
+[data-theme="light"] .cursor-glow { background: radial-gradient(circle, rgba(14, 116, 144, .10), rgba(109, 40, 217, .05) 40%, transparent 70%); }
+[data-theme="light"] .portrait { border-color: rgba(15, 23, 42, .12); box-shadow: 0 20px 50px rgba(15, 23, 42, .2); }
+[data-theme="light"] .hint-tip { color: #fff; }
+/* the ignition screen is an instrument panel: it stays dark in both themes */
+[data-theme="light"] #loader {
+  --ink: #e6edf7; --muted: #94a3b8; --line: rgba(148, 163, 184, .16); --glass: rgba(9, 13, 28, .58);
+  --cyan: #22d3ee; --violet: #a78bfa; --pink: #f472b6; --amber: #fbbf24; color: var(--ink);
+}
+
+/* ================= Case-study panels ================= */
+.case-btn { border: 1px solid var(--line); }
+body.modal-open { overflow: hidden; }
+.case {
+  width: min(880px, calc(100% - 32px)); max-height: calc(100% - 48px); padding: 0; border: 1px solid var(--line);
+  border-radius: 22px; background: var(--surface); color: var(--ink); box-shadow: 0 40px 120px rgba(0, 0, 0, .55); overflow: hidden;
+}
+.case[open] { animation: caseIn .45s cubic-bezier(.2, .9, .3, 1.15); }
+@keyframes caseIn { from { opacity: 0; transform: translateY(24px) scale(.97); } }
+.case::backdrop { background: rgba(3, 5, 12, .62); backdrop-filter: blur(6px); }
+[data-theme="light"] .case::backdrop { background: rgba(15, 23, 42, .35); }
+.case-inner { max-height: calc(100vh - 48px); overflow-y: auto; padding: clamp(22px, 4vw, 44px); }
+.case-close {
+  position: sticky; top: 0; float: right; width: 40px; height: 40px; margin: -6px -6px 0 12px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 1.5rem; line-height: 1; cursor: pointer; z-index: 2;
+}
+.case-close:hover { border-color: var(--cyan); color: var(--cyan); }
+.case h2 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); text-wrap: balance; margin-bottom: 10px; }
+.case .case-lead { font-size: 1.05rem; max-width: 62ch; }
+.case-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 22px 0 28px; }
+.case-facts div { padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(127, 127, 127, .05); }
+.case-facts b { display: block; font-size: 1.35rem; color: var(--cyan); font-variant-numeric: tabular-nums; }
+.case-facts span { font-size: .78rem; color: var(--muted); }
+.case-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 32px; }
+.case-sections section.wide { grid-column: 1 / -1; }
+.case h3 { margin: 0 0 8px; font: 600 .72rem 'JetBrains Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); }
+.case ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.case li, .case section p { color: var(--muted); font-size: .95rem; }
+[data-theme="light"] .case li, [data-theme="light"] .case section p { color: #334155; }
+.case-table { overflow-x: auto; margin-top: 4px; border: 1px solid var(--line); border-radius: 12px; }
+.case table { width: 100%; border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; min-width: 560px; }
+.case th, .case td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.case th:first-child, .case td:first-child { text-align: left; }
+.case thead th { font: 600 .68rem 'JetBrains Mono', monospace; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.case tbody tr:last-child td { border-bottom: 0; }
+.case tr.pick td { background: rgba(34, 211, 238, .08); }
+.case tr.pick td:first-child { color: var(--cyan); font-weight: 600; }
+.case td.best { color: var(--good); font-weight: 600; }
+.case .note { font-size: .78rem; color: var(--muted); margin-top: 8px; }
+.case-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+@media (max-width: 640px) {
+  .case-sections { grid-template-columns: 1fr; }
+  .case-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .case-facts b { font-size: 1.1rem; }
+  .topbar .icon-btn { margin-left: 0; }
+}

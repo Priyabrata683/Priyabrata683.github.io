@@ -497,6 +497,147 @@ $('#contact-form').addEventListener('submit', (e) => {
   window.location.href = `mailto:priyabrata683@gmail.com?subject=${subject}&body=${body}`;
 });
 
+/* ---------------- Theme: pull cord with circular reveal ---------------- */
+const cord = $('#theme-cord');
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+const currentTheme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+function setTheme(t) {
+  if (t === 'light') document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+  store.set('pp-theme', t);
+  themeMeta.setAttribute('content', t === 'light' ? '#e9eef5' : '#05060f');
+  cord.setAttribute('aria-label', t === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+  sceneApi?.setTheme(t === 'light');
+}
+function toggleTheme() {
+  const next = currentTheme() === 'light' ? 'dark' : 'light';
+  Sound.init();
+  Sound.tone(next === 'light' ? 1200 : 600, 0.06, 'square', 0.05);
+  const k = cord.querySelector('.cord-knob').getBoundingClientRect();
+  const x = k.left + k.width / 2, y = k.top + k.height / 2;
+  if (!document.startViewTransition || reduceMotion) { setTheme(next); return; }
+  const vt = document.startViewTransition(() => setTheme(next));
+  vt.ready.then(() => {
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 800, easing: 'cubic-bezier(.65, 0, .35, 1)', pseudoElement: '::view-transition-new(root)' }
+    );
+  }).catch(() => {});
+}
+setTheme(currentTheme());
+(function wireCord() {
+  let startY = null, dy = 0;
+  const reset = () => { startY = null; cord.classList.remove('dragging'); cord.style.setProperty('--pull', '0px'); };
+  cord.addEventListener('pointerdown', (e) => {
+    startY = e.clientY; dy = 0;
+    try { cord.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    cord.classList.add('dragging');
+  });
+  cord.addEventListener('pointermove', (e) => {
+    if (startY === null) return;
+    dy = clamp(e.clientY - startY, 0, 70);
+    cord.style.setProperty('--pull', `${dy}px`);
+  });
+  cord.addEventListener('pointerup', () => {
+    if (startY === null) return;
+    const pulled = dy;
+    reset();
+    if (pulled > 26 || pulled < 4) toggleTheme(); // a firm pull, or a simple tap
+  });
+  cord.addEventListener('pointercancel', reset);
+  cord.addEventListener('click', (e) => {
+    if (e.detail !== 0) return; // keyboard activation only; pointer handled above
+    cord.style.setProperty('--pull', '30px');
+    setTimeout(() => cord.style.setProperty('--pull', '0px'), 160);
+    toggleTheme();
+  });
+})();
+
+/* ---------------- Project case studies ---------------- */
+const CASES = {
+  kart: {
+    eyebrow: 'Case study · Motorsport · GKDC 2019',
+    title: 'Electric Go-Kart',
+    lead: 'My team built an electric go-kart from scratch to take part in the GKDC 2019 motorsport event. I led the design team.',
+    facts: [['GKDC 2019', 'motorsport event'], ['Design lead', 'my role in the team'], ['Electric', 'drivetrain'], ['From scratch', 'designed and built by us']],
+    sections: [
+      ['Goal', '<p>Design and build a working electric go-kart from scratch, ready to compete at GKDC 2019.</p>'],
+      ['My role', '<p>Team Leader of the Design Team.</p>'],
+      ['What I did', '<ul><li>Oversaw the design of the vehicle.</li><li>Was responsible for its functionality, safety and performance.</li><li>Worked hands-on with the electric vehicle systems.</li></ul>'],
+      ['What I learned', '<ul><li>Leading a design team through a full build.</li><li>Electric vehicle systems in practice.</li><li>Motorsport engineering.</li></ul>'],
+      ['Result', '<p>A complete electric go-kart, designed and built by our team for GKDC 2019.</p>', true],
+    ],
+  },
+  robo: {
+    eyebrow: 'Case study · Robotics · Race competition',
+    title: 'RoboRider',
+    lead: 'An Arduino-powered remote-control vehicle. I assembled the hardware and wrote the code that drives it, and our team finished 3rd in the race.',
+    facts: [['3rd place', 'in the race competition'], ['Arduino', 'microcontroller'], ['Hardware + code', 'my part of the build']],
+    sections: [
+      ['Goal', '<p>Build a remote-controlled vehicle, powered by an Arduino, to compete in a race.</p>'],
+      ['My role', '<p>Team member working on both the hardware and the software.</p>'],
+      ['What I did', '<ul><li>Assembled the hardware components.</li><li>Wrote the Arduino code that controls its movement.</li></ul>'],
+      ['What I learned', '<ul><li>Robotics.</li><li>Microcontroller programming.</li><li>Remote communication.</li></ul>'],
+      ['Result', '<p>Our team placed 3rd in the race competition.</p>', true],
+    ],
+  },
+  thesis: {
+    eyebrow: 'Case study · Research · IJERT, Vol. 10 Issue 04, April 2021',
+    title: 'Choosing a better material for a connecting rod',
+    lead: 'The connecting rod is the most highly stressed part of an IC engine, and when one fails the engine is usually destroyed. We compared four lightweight materials under extreme load to find a better one to make it from.',
+    facts: [['36,192 N', 'compressive load on the rod'], ['4', 'materials compared'], ['27,137', 'nodes in the ANSYS mesh'], ['31%', 'lower density: BeI220H vs the aluminium alloys']],
+    sections: [
+      ['The question', '<p>Which of BeI220H (a beryllium alloy), Al A360, Al 5083 and Al 7075-T6 makes the best connecting rod: lighter, stiffer and able to survive extreme loading?</p>'],
+      ['My role', '<p>Co-author of the paper, working in a team of four students under Asst. Prof. Sasank Shekhar Panda at GIET University.</p>'],
+      ['Method', `<ul>
+        <li>Based the study on the Bajaj Pulsar 150 engine (bore 58 mm, stroke 56.4 mm).</li>
+        <li>Calculated the gas pressure with the gas equation, then the net force on the rod: 39,631 N piston force minus 3,439 N inertia force gives 36,192 N.</li>
+        <li>Modelled the rod in Fusion 360 and meshed it in ANSYS with tetrahedral elements (27,137 nodes, 18,006 elements).</li>
+        <li>Ran two compressive load cases: big end fixed with the load on the small end, and the reverse.</li>
+        <li>Compared total deformation, maximum principal elastic strain, equivalent stress and safety factor.</li>
+      </ul>`, true],
+      ['Results', `<div class="case-table"><table>
+        <thead><tr><th>Material</th><th>Density g/cc</th><th>Deformation mm<br>small / big end</th><th>Equiv. stress MPa<br>small / big end</th><th>Safety factor<br>small / big end</th></tr></thead>
+        <tbody>
+          <tr class="pick"><td>BeI220H</td><td class="best">1.844</td><td class="best">0.145 / 0.444</td><td>989.6 / 1332.7</td><td>0.34 / 0.25</td></tr>
+          <tr><td>Al A360</td><td>2.68</td><td>0.613 / 1.909</td><td>921.7 / 1355.0</td><td>0.18 / 0.12</td></tr>
+          <tr><td>Al 5083</td><td>2.66</td><td>0.620 / 1.895</td><td>925.0 / 1277.5</td><td>0.24 / 0.17</td></tr>
+          <tr><td>Al 7075-T6</td><td>2.67</td><td>0.607 / 1.849</td><td>921.7 / 1336.6</td><td class="best">0.54 / 0.37</td></tr>
+        </tbody></table></div>
+        <p class="note">ANSYS results from the published paper. Green marks the best value in each column where one material clearly leads.</p>`, true],
+      ['Conclusion', '<p>BeI220H had the lowest deformation and strain in both load cases, the lowest weight, and the second-highest safety factor, so we recommended it for manufacturing connecting rods.</p>', true],
+    ],
+    actions: '<a class="btn primary" href="./IJERT_Analysis_of_Connecting_Rod_Under_D.pdf" download><i class="fas fa-file-pdf"></i> Download the paper (PDF)</a>',
+  },
+};
+const caseDialog = $('#case-dialog');
+const caseBody = $('#case-body');
+function openCase(id) {
+  const c = CASES[id];
+  if (!c) return;
+  caseBody.innerHTML = `
+    <p class="eyebrow mono">${c.eyebrow}</p>
+    <h2 id="case-title">${c.title}</h2>
+    <p class="case-lead">${c.lead}</p>
+    <div class="case-facts">${c.facts.map(([b, t]) => `<div><b>${b}</b><span>${t}</span></div>`).join('')}</div>
+    <div class="case-sections">${c.sections.map(([h, body, wide]) => `<section class="${wide ? 'wide' : ''}"><h3>${h}</h3>${body}</section>`).join('')}</div>
+    ${c.actions ? `<div class="case-actions">${c.actions}</div>` : ''}`;
+  caseDialog.querySelector('.case-inner').scrollTop = 0;
+  if (typeof caseDialog.showModal === 'function') caseDialog.showModal();
+  else caseDialog.setAttribute('open', '');
+  document.body.classList.add('modal-open');
+  Sound.init();
+  Sound.whoosh(0.4, 600, 2000, 0.08);
+}
+function closeCase() {
+  if (caseDialog.open) caseDialog.close();
+}
+caseDialog.addEventListener('close', () => document.body.classList.remove('modal-open'));
+caseDialog.querySelector('.case-close').addEventListener('click', closeCase);
+caseDialog.addEventListener('click', (e) => { if (e.target === caseDialog) closeCase(); });
+document.querySelectorAll('.case-btn').forEach((b) => b.addEventListener('click', () => openCase(b.dataset.case)));
+
 /* ---------------- Input: turbo + drive ---------------- */
 const input = { turbo: false, keys: { up: false, down: false, left: false, right: false } };
 const drive = { on: false };
@@ -526,7 +667,7 @@ document.querySelectorAll('#drive-pad button').forEach((b) => {
 });
 
 window.addEventListener('keydown', (e) => {
-  if (typing(e)) return;
+  if (typing(e) || caseDialog.open) return;
   if (!gate.done) {
     if (e.code === 'Space' || e.code === 'Enter') holdStart(e);
     return;
@@ -719,7 +860,7 @@ function initScene() {
   raycaster.camera = camera;
   raycaster.params.Points.threshold = 0.05;
   const tip = $('#hint-tip');
-  const uiTarget = (el) => el.closest?.('.card, a, button, input, textarea, nav, header, .hud, #loader');
+  const uiTarget = (el) => el.closest?.('.card, a, button, input, textarea, nav, header, .hud, #loader, dialog, .cord');
   let hovered = null;
 
   function setPointer(e) {
@@ -779,6 +920,14 @@ function initScene() {
   const tmp = new THREE.Vector3();
   const confetti = ['#22d3ee', '#a78bfa', '#f472b6', '#fbbf24', '#4ade80', '#ffffff'];
   sceneApi = {
+    setTheme(light) {
+      scene.fog.color.set(light ? 0xe9eef5 : 0x05060f);
+      stars.points.material.color.set(light ? 0x475569 : 0xffffff);
+      grid.material.opacity = light ? 0.12 : 0.06;
+      sparks.setLight(light);
+      renderer.toneMappingExposure = light ? 1.0 : 1.1;
+      renderer.render(scene, camera);
+    },
     celebrate() {
       for (let k = 0; k < 7; k++) {
         setTimeout(() => {
@@ -788,6 +937,7 @@ function initScene() {
       }
     },
   };
+  sceneApi.setTheme(currentTheme() === 'light');
   let camZ = 34;
   let camZTarget = 34;
   let warp = 3;
@@ -1720,6 +1870,14 @@ class Sparks {
     }));
     this.points.frustumCulled = false;
     this.c = new THREE.Color();
+    this.light = false;
+  }
+  setLight(light) {
+    this.light = light;
+    const m = this.points.material;
+    m.blending = light ? THREE.MultiplyBlending : THREE.AdditiveBlending;
+    m.premultipliedAlpha = light;
+    m.needsUpdate = true;
   }
   burst(p, colors, count = 60, speed = 4) {
     for (let k = 0; k < count; k++) {
@@ -1750,9 +1908,10 @@ class Sparks {
       this.pos[j + 1] += this.vel[j + 1] * dt;
       this.pos[j + 2] += this.vel[j + 2] * dt;
       const k = Math.max(this.life[i] / this.max[i], 0);
-      this.col[j] = this.base[j] * k;
-      this.col[j + 1] = this.base[j + 1] * k;
-      this.col[j + 2] = this.base[j + 2] * k;
+      const w = this.light ? 1 - k : 0; // light theme: fade toward white (invisible under multiply)
+      this.col[j] = this.base[j] * k + w;
+      this.col[j + 1] = this.base[j + 1] * k + w;
+      this.col[j + 2] = this.base[j + 2] * k + w;
       if (this.life[i] <= 0) this.pos[j + 1] = -9999;
     }
     this.alive = any;
